@@ -3,12 +3,15 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/Fikriafrizal99/Search-Engine-B2B/internal/collectorconfig"
 	"github.com/Fikriafrizal99/Search-Engine-B2B/internal/collectorpost"
@@ -29,6 +32,9 @@ func main() {
 	noDB := flag.Bool("no-db", false, "skip database import")
 	keepRaw := flag.Bool("keep-raw", false, "keep temporary raw files")
 	flag.Parse()
+
+	runCtx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
 
 	preset, err := collectorconfig.LoadPreset(filepath.Join(*configDir, "presets", *presetName+".json"))
 	if err != nil {
@@ -88,18 +94,36 @@ func main() {
 	if resolvedLocation != "" {
 		fmt.Printf("Location: %s\n", resolvedLocation)
 	}
+
+	if err := runCtx.Err(); err != nil {
+		fatalf("collect cancelled")
+	}
+	fmt.Println("PHASE scraping")
 	args := []string{"-input", queryFile, "-results", rawFile}
 	args = append(args, flag.Args()...)
-	cmd := exec.Command(*engine, args...)
+	cmd := exec.CommandContext(runCtx, *engine, args...)
 	cmd.Stdout, cmd.Stderr, cmd.Stdin = os.Stdout, os.Stderr, os.Stdin
 	if err := cmd.Run(); err != nil {
+		if errors.Is(runCtx.Err(), context.Canceled) {
+			fatalf("scraper cancelled")
+		}
 		fatalf("scraper failed: %v", err)
 	}
+
+	if err := runCtx.Err(); err != nil {
+		fatalf("collect cancelled")
+	}
+	fmt.Println("PHASE post-process")
 	if err := collectorpost.ProcessCSV(rawFile, *output, preset); err != nil {
 		fatalf("post-process: %v", err)
 	}
 	fmt.Printf("Prospect CSV: %s\n", *output)
+
 	if !*noDB {
+		if err := runCtx.Err(); err != nil {
+			fatalf("collect cancelled")
+		}
+		fmt.Println("PHASE database-import")
 		store, err := prospectstore.Open(*dbPath)
 		if err != nil {
 			fatalf("open database: %v", err)
@@ -108,9 +132,12 @@ func main() {
 		if scope == "" {
 			scope = strings.TrimSpace(*subarea)
 		}
-		count, importErr := store.ImportCSV(context.Background(), *output, scope)
+		count, importErr := store.ImportCSV(runCtx, *output, scope)
 		closeErr := store.Close()
 		if importErr != nil {
+			if errors.Is(runCtx.Err(), context.Canceled) {
+				fatalf("collect cancelled")
+			}
 			fatalf("import database: %v", importErr)
 		}
 		if closeErr != nil {
@@ -118,6 +145,7 @@ func main() {
 		}
 		fmt.Printf("Prospect DB: %s (%d rows processed)\n", *dbPath, count)
 	}
+	fmt.Println("PHASE done")
 	if *keepRaw {
 		fmt.Printf("Raw: %s\n", tmpDir)
 	}
