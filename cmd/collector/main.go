@@ -20,6 +20,8 @@ func main() {
 	areaName := flag.String("area", "java-sumatra", "area name")
 	subarea := flag.String("subarea", "", "optional province")
 	location := flag.String("location", "", "resolved province/regency/district/village location")
+	keywordsRaw := flag.String("keywords", "", "optional custom business keywords separated by newline, comma, or semicolon")
+	includeDefaults := flag.Bool("include-defaults", false, "include preset keywords in addition to custom keywords")
 	configDir := flag.String("config-dir", "config", "config directory")
 	engine := flag.String("engine", filepath.FromSlash("bin/google_maps_scraper"), "path to upstream google maps scraper binary")
 	output := flag.String("output", filepath.FromSlash("data/prospects.csv"), "filtered B2B CSV output")
@@ -36,12 +38,28 @@ func main() {
 	if err != nil {
 		fatalf("load area: %v", err)
 	}
+
+	customKeywords := collectorconfig.ParseKeywords(*keywordsRaw)
+	if len(customKeywords) > 100 {
+		fatalf("maximum 100 custom keywords per run")
+	}
+	for _, keyword := range customKeywords {
+		if len([]rune(keyword)) > 120 {
+			fatalf("custom keyword is too long (max 120 characters): %q", keyword)
+		}
+	}
+
+	effectivePreset := preset
+	if len(customKeywords) > 0 {
+		effectivePreset.Keywords = collectorconfig.MergeKeywords(preset.Keywords, customKeywords, *includeDefaults)
+	}
+
 	resolvedLocation := strings.TrimSpace(*location)
 	var queries []string
 	if resolvedLocation != "" {
-		queries, err = collectorconfig.BuildQueriesForLocation(preset, resolvedLocation)
+		queries, err = collectorconfig.BuildQueriesForKeywordsLocation(effectivePreset.Keywords, resolvedLocation)
 	} else {
-		queries, err = collectorconfig.BuildQueries(preset, area, *subarea)
+		queries, err = collectorconfig.BuildQueries(effectivePreset, area, *subarea)
 	}
 	if err != nil {
 		fatalf("build queries: %v", err)
@@ -63,7 +81,10 @@ func main() {
 	if err := writeQueries(queryFile, queries); err != nil {
 		fatalf("write queries: %v", err)
 	}
-	fmt.Printf("Search Engine B2B | queries=%d\n", len(queries))
+	fmt.Printf("Search Engine B2B | keywords=%d queries=%d\n", len(effectivePreset.Keywords), len(queries))
+	if len(customKeywords) > 0 {
+		fmt.Printf("Custom keywords: %d | include defaults: %t\n", len(customKeywords), *includeDefaults)
+	}
 	if resolvedLocation != "" {
 		fmt.Printf("Location: %s\n", resolvedLocation)
 	}
