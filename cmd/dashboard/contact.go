@@ -153,7 +153,7 @@ func waIntroURL(phone, title string) string {
 		return "#"
 	}
 	message := fmt.Sprintf("Halo Bapak/Ibu, saya Fikri. Saya menghubungi %s. Saya ingin menyampaikan informasi layanan pembiayaan kendaraan dari perusahaan multifinance. Jika berkenan, saya bisa kirim informasi singkat di sini. Terima kasih.", strings.TrimSpace(title))
-	return "whatsapp://send?phone=" + number + "&text=" + url.QueryEscape(message)
+	return "https://wa.me/" + number + "?text=" + url.QueryEscape(message)
 }
 
 func waFollowUpURL(phone, title string) string {
@@ -162,7 +162,7 @@ func waFollowUpURL(phone, title string) string {
 		return "#"
 	}
 	message := fmt.Sprintf("Halo Bapak/Ibu, saya Fikri. Menindaklanjuti komunikasi sebelumnya dengan %s, saya menghubungi kembali sesuai pembicaraan kita. Jika waktunya sesuai, saya siap bantu jelaskan informasinya. Terima kasih.", strings.TrimSpace(title))
-	return "whatsapp://send?phone=" + number + "&text=" + url.QueryEscape(message)
+	return "https://wa.me/" + number + "?text=" + url.QueryEscape(message)
 }
 
 func executionLabel(v string) string {
