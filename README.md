@@ -7,7 +7,9 @@ Standalone search engine and prospect database for **public B2B listings** from 
 - Java + Sumatra geographic scope
 - Cascading location selector: Province -> Regency/City -> District -> Village/Kelurahan
 - Public region API with local cache
-- 32 default business-category queries
+- **Free-form custom queries**: enter any business category, one or many at once
+- 32 recommended business-category queries as an optional starter preset
+- Custom-only mode or custom + default mode
 - Google Maps collection through the upstream `gosom/google-maps-scraper` executable
 - Filtering and deduplication
 - SQLite prospect database (`data/prospects.db`)
@@ -16,6 +18,35 @@ Standalone search engine and prospect database for **public B2B listings** from 
 - CSV and XLSX export
 - Manual CSV import
 - GitHub Actions CI
+
+## Query model
+
+The 32 default queries are **not a limit**. They are only recommendations. From the dashboard you can type up to 100 custom business keywords per collection run, separated by newline, comma, or semicolon.
+
+Examples:
+
+```text
+agen pupuk
+toko alat berat
+bakery
+dealer mobil bekas
+distributor minuman
+```
+
+The selected location is appended automatically. For example:
+
+```text
+agen pupuk + Cugenang, Kabupaten Cianjur, Jawa Barat, Indonesia
+```
+
+becomes a Google Maps search query for that exact administrative scope.
+
+Two modes are available:
+
+- **Custom only**: disable the default-query checkbox.
+- **Custom + defaults**: keep the checkbox enabled and your custom queries are added to the 32 recommendations.
+
+If the custom-query box is empty, the normal 32-query preset is used.
 
 ## B2B-only data model
 
@@ -62,12 +93,35 @@ Open:
 http://localhost:8080
 ```
 
-## Direct collector example
+## Direct collector examples
+
+Default preset:
 
 ```bash
 ./bin/search-engine-b2b \
   -engine /path/to/google_maps_scraper \
   -location "Sukamulya, Cugenang, Kabupaten Cianjur, Jawa Barat, Indonesia" \
+  -- -c 2 -depth 5
+```
+
+Custom-only:
+
+```bash
+./bin/search-engine-b2b \
+  -engine /path/to/google_maps_scraper \
+  -location "Cugenang, Kabupaten Cianjur, Jawa Barat, Indonesia" \
+  -keywords "agen pupuk; toko alat berat; bakery" \
+  -- -c 2 -depth 5
+```
+
+Custom + default:
+
+```bash
+./bin/search-engine-b2b \
+  -engine /path/to/google_maps_scraper \
+  -location "Cianjur, Jawa Barat, Indonesia" \
+  -keywords "agen pupuk; toko alat berat" \
+  -include-defaults=true \
   -- -c 2 -depth 5
 ```
 
