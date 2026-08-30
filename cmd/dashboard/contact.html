@@ -39,11 +39,11 @@
 <div class="info-item"><small>Next follow-up</small>{{contactTime .Lead.Execution.NextFollowUpAt}}</div>
 </div>
 <div class="actions">
-{{if .Lead.Record.Prospect.Phone}}<a class="btn call" href="tel:+{{wa .Lead.Record.Prospect.Phone}}">☎ Call</a><a class="btn wa" href="{{waIntro .Lead.Record.Prospect.Phone .Lead.Record.Prospect.Title}}">WhatsApp Intro</a><a class="btn" href="{{waFollowUp .Lead.Record.Prospect.Phone .Lead.Record.Prospect.Title}}">WA Follow-up</a>{{end}}
+{{if .Lead.Record.Prospect.Phone}}<a class="btn call" href="tel:+{{wa .Lead.Record.Prospect.Phone}}">☎ Call</a><a class="btn wa" target="_blank" rel="noreferrer" href="{{waIntro .Lead.Record.Prospect.Phone .Lead.Record.Prospect.Title}}">WhatsApp Intro</a><a class="btn" target="_blank" rel="noreferrer" href="{{waFollowUp .Lead.Record.Prospect.Phone .Lead.Record.Prospect.Title}}">WA Follow-up</a>{{end}}
 {{if .Lead.Record.Prospect.MapsURL}}<a class="btn" target="_blank" rel="noreferrer" href="{{.Lead.Record.Prospect.MapsURL}}">Google Maps</a>{{end}}
 <a class="btn" href="/lead/{{.Lead.Record.Prospect.ID}}">Detail</a>
 </div>
-<div class="hint">WhatsApp dibuka lewat aplikasi dengan pesan yang sudah terisi. Pesan <b>tidak dikirim otomatis</b>; kamu tetap review/edit lalu tekan Send sendiri. Jika hasil kontak <b>Tertarik</b>, lead otomatis dibuatkan Opportunity dan masuk Sales Pipeline untuk qualification.</div>
+<div class="hint">WhatsApp hanya dibuka dengan pesan yang sudah terisi. Pesan <b>tidak dikirim otomatis</b>; kamu tetap review/edit lalu tekan Send sendiri. Jika hasil kontak <b>Tertarik</b>, lead otomatis dibuatkan Opportunity dan masuk Sales Pipeline untuk qualification.</div>
 </div>
 
 <div class="panel"><h3 style="margin-top:0">Catat hasil kontak</h3>
