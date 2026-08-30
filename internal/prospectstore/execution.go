@@ -54,12 +54,12 @@ type ContactLead struct {
 }
 
 type ExecutionStats struct {
-	New            int
-	FollowUpToday  int
-	Overdue        int
-	Interested     int
-	Qualified      int
-	InProcess      int
+	New           int
+	FollowUpToday int
+	Overdue       int
+	Interested    int
+	Qualified     int
+	InProcess     int
 }
 
 type ContactInput struct {

@@ -1,8 +1,8 @@
 package main
 
 import (
-	_ "embed"
 	"database/sql"
+	_ "embed"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -22,13 +22,13 @@ type contactPageData struct {
 }
 
 var contactFuncs = template.FuncMap{
-	"wa":          waNumber,
-	"waIntro":     waIntroURL,
-	"waFollowUp":  waFollowUpURL,
-	"execLabel":   executionLabel,
-	"resultLabel": contactResultLabel,
+	"wa":           waNumber,
+	"waIntro":      waIntroURL,
+	"waFollowUp":   waFollowUpURL,
+	"execLabel":    executionLabel,
+	"resultLabel":  contactResultLabel,
 	"channelLabel": contactChannelLabel,
-	"contactTime": contactTime,
+	"contactTime":  contactTime,
 }
 
 var contactTmpl = template.Must(template.New("contact").Funcs(contactFuncs).Parse(contactHTML))
