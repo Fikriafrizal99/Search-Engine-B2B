@@ -14,7 +14,10 @@ Standalone search engine and prospect database for **public B2B listings** from 
 - Filtering and deduplication
 - SQLite prospect database (`data/prospects.db`)
 - B2B dashboard
-- Business scale, prospect priority, contact status, verification, and QC
+- **Contact Session / Action Queue** for sales execution
+- Call and WhatsApp shortcuts with editable pre-filled messages
+- Contact result logging and contact history
+- Follow-up scheduling and retry queue
 - CSV and XLSX export
 - Manual CSV import
 - GitHub Actions CI
@@ -48,21 +51,67 @@ Two modes are available:
 
 If the custom-query box is empty, the normal 32-query preset is used.
 
-## B2B-only data model
+## Sales execution model
 
-The database stores business listing fields plus:
+The search engine and the sales workflow are separated intentionally:
 
-- Business Scale
-- Priority
-- Contact Status
-- Detailed Business Type
-- Operational Scale
-- Products / Services
-- Service Area
-- Prospect Fit
-- Verification Status
-- Internal Notes
-- QC Status / QC Note
+```text
+Google Maps -> Prospect Database -> Contact Session -> Follow-up -> Interested -> Qualified
+```
+
+Open the Contact Session from the dashboard or directly at:
+
+```text
+http://localhost:8080/contact
+```
+
+The Action Queue supports:
+
+- New leads with a public business phone number
+- Follow-ups due today
+- Overdue follow-ups
+- Interested leads
+- Qualified leads
+- Cases already in process
+
+For each lead the session shows the business profile and provides:
+
+- `Call` using the device `tel:` handler
+- `WhatsApp Intro` with a pre-filled introductory message
+- `WA Follow-up` with a pre-filled follow-up message
+- Result selection: no answer, busy, requested WhatsApp, WA sent, follow-up, interested, qualified, not interested, wrong number, or unreachable
+- Optional PIC/owner
+- Notes
+- Next follow-up date/time in WIB
+- Complete contact history
+
+After saving a result, the session automatically advances to the next actionable lead. `No answer` and `Busy` are placed into retry with a default follow-up 24 hours later when no schedule is supplied. A manually selected `Follow-up` requires a scheduled date/time.
+
+WhatsApp messages are **not sent automatically**. The system only opens WhatsApp with editable text already filled in; the operator reviews and presses Send.
+
+## Data model
+
+The database keeps public Maps listing data separate from execution data.
+
+Prospect/listing data includes:
+
+- Business name
+- Category
+- Address and selected location scope
+- Public business phone
+- Website
+- Rating/review count
+- Google Maps URL and IDs
+
+Execution data includes:
+
+- Status
+- Last contact
+- Last result
+- Next follow-up
+- Next action
+- PIC/owner
+- Contact history and notes
 
 There are **no kost-specific fields** in this repository.
 
@@ -129,4 +178,4 @@ The filtered CSV is written to `data/prospects.csv` and imported into `data/pros
 
 ## Important boundary
 
-This tool discovers and organizes **public business listings**. Priority and prospect-fit fields are for business workflow/contact management; they must not be used to infer that a named person or business is in financial distress.
+This tool discovers and organizes **public business listings** and manages operator-recorded sales activity. It does not infer that a named person or business is in financial distress. Qualification is based on information actually obtained during communication, not assumptions from Maps data.
