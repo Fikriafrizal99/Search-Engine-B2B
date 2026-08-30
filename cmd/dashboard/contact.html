@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contact Session · Search Engine B2B</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,sans-serif;color:#172033;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1180px;margin:auto;padding:22px}.top{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:16px}.top h1{margin:0;font-size:26px}.muted{color:#6f7a8d;font-size:13px}.btn,button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 13px;border-radius:10px;border:1px solid #d7dfeb;background:#fff;color:#172033;text-decoration:none;font:inherit;cursor:pointer}.primary{background:#172033;color:#fff;border-color:#172033}.wa{background:#217a3c;color:#fff;border-color:#217a3c}.call{background:#255fc7;color:#fff;border-color:#255fc7}.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:16px}.stat{background:#fff;border:1px solid #e6ebf3;border-radius:12px;padding:13px}.stat b{font-size:23px;display:block;margin-top:4px}.panel{background:#fff;border:1px solid #e6ebf3;border-radius:14px;padding:18px;margin-bottom:15px;box-shadow:0 4px 18px rgba(18,38,63,.04)}.modes{display:flex;gap:7px;flex-wrap:wrap}.modes .active{background:#172033;color:#fff}.lead-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.lead-name{font-size:25px;font-weight:800;margin:0 0 4px}.badge{display:inline-flex;padding:5px 8px;border-radius:999px;background:#eef2f7;font-size:11px;font-weight:750}.info{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.info-item{border-top:1px solid #edf1f6;padding-top:10px}.info-item small{display:block;color:#6f7a8d;margin-bottom:4px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.hint{padding:10px 12px;background:#f7f9fc;border-radius:9px;font-size:12px;color:#657086;margin-top:10px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}label span{display:block;font-size:12px;color:#667085;margin-bottom:4px}input,select,textarea{width:100%;border:1px solid #d7dfeb;border-radius:9px;padding:9px 10px;font:inherit;background:#fff}input,select{min-height:42px}textarea{min-height:90px;resize:vertical}.savebar{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.history{width:100%;border-collapse:collapse}.history th,.history td{padding:9px;border-bottom:1px solid #eef2f7;text-align:left;font-size:13px}.history th{color:#667085}.empty{text-align:center;padding:42px 20px}.empty h2{margin-top:0}.small{font-size:12px}.warning{color:#8a6400}@media(max-width:900px){.stats{grid-template-columns:repeat(3,1fr)}.info,.formgrid{grid-template-columns:1fr}.full{grid-column:auto}}@media(max-width:600px){.wrap{padding:13px}.stats{grid-template-columns:1fr 1fr}.top,.lead-head{flex-direction:column;align-items:stretch}.actions .btn,.actions a{flex:1}.savebar button{width:100%}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="top"><div><h1>Contact Session</h1><div class="muted">Eksekusi lead satu per satu tanpa kerja administratif berulang.</div></div><a class="btn" href="/">← Dashboard</a></div>
+
+<div class="stats">
+<div class="stat"><span class="muted">New</span><b>{{.Stats.New}}</b></div>
+<div class="stat"><span class="muted">Follow-up hari ini</span><b>{{.Stats.FollowUpToday}}</b></div>
+<div class="stat"><span class="muted">Overdue</span><b>{{.Stats.Overdue}}</b></div>
+<div class="stat"><span class="muted">Interested</span><b>{{.Stats.Interested}}</b></div>
+<div class="stat"><span class="muted">Qualified</span><b>{{.Stats.Qualified}}</b></div>
+<div class="stat"><span class="muted">In process</span><b>{{.Stats.InProcess}}</b></div>
+</div>
+
+<div class="panel"><div class="modes">
+<a class="btn {{if eq .Mode "all"}}active{{end}}" href="/contact?mode=all">Action Queue</a>
+<a class="btn {{if eq .Mode "new"}}active{{end}}" href="/contact?mode=new">New Leads</a>
+<a class="btn {{if eq .Mode "follow_up"}}active{{end}}" href="/contact?mode=follow_up">Follow-up Due</a>
+</div></div>
+
+{{if .Empty}}
+<div class="panel empty"><h2>Queue ini sudah kosong 🎯</h2><p class="muted">Tidak ada lead yang perlu dieksekusi untuk mode ini sekarang.</p><a class="btn primary" href="/contact?mode=all">Cek Action Queue</a></div>
+{{else}}
+<div class="panel">
+<div class="lead-head"><div><div class="badge">{{execLabel .Lead.Execution.Status}}</div><h2 class="lead-name">{{.Lead.Record.Prospect.Title}}</h2><div class="muted">{{.Lead.Record.Prospect.Category}}</div></div><div class="muted">Lead #{{.Lead.Record.Prospect.ID}}</div></div>
+<div class="info">
+<div class="info-item"><small>Telepon</small><b>{{if .Lead.Record.Prospect.Phone}}{{.Lead.Record.Prospect.Phone}}{{else}}-{{end}}</b></div>
+<div class="info-item"><small>Wilayah</small>{{.Lead.Record.Prospect.LocationScope}}</div>
+<div class="info-item"><small>Alamat</small>{{.Lead.Record.Prospect.Address}}</div>
+<div class="info-item"><small>Last result</small>{{if .Lead.Execution.LastResult}}{{resultLabel .Lead.Execution.LastResult}}{{else}}Belum pernah dihubungi{{end}}</div>
+<div class="info-item"><small>Last contact</small>{{contactTime .Lead.Execution.LastContactAt}}</div>
+<div class="info-item"><small>Next follow-up</small>{{contactTime .Lead.Execution.NextFollowUpAt}}</div>
+</div>
+<div class="actions">
+{{if .Lead.Record.Prospect.Phone}}<a class="btn call" href="tel:+{{wa .Lead.Record.Prospect.Phone}}">☎ Call</a><a class="btn wa" target="_blank" rel="noreferrer" href="{{waIntro .Lead.Record.Prospect.Phone .Lead.Record.Prospect.Title}}">WhatsApp Intro</a><a class="btn" target="_blank" rel="noreferrer" href="{{waFollowUp .Lead.Record.Prospect.Phone .Lead.Record.Prospect.Title}}">WA Follow-up</a>{{end}}
+{{if .Lead.Record.Prospect.MapsURL}}<a class="btn" target="_blank" rel="noreferrer" href="{{.Lead.Record.Prospect.MapsURL}}">Google Maps</a>{{end}}
+<a class="btn" href="/lead/{{.Lead.Record.Prospect.ID}}">Detail</a>
+</div>
+<div class="hint">WhatsApp hanya dibuka dengan pesan yang sudah terisi. Pesan <b>tidak dikirim otomatis</b>; kamu tetap review/edit lalu tekan Send sendiri.</div>
+</div>
+
+<div class="panel"><h3 style="margin-top:0">Catat hasil kontak</h3>
+<form method="post" action="/contact/{{.Lead.Record.Prospect.ID}}/result">
+<input type="hidden" name="mode" value="{{.Mode}}">
+<div class="formgrid">
+<label><span>Channel</span><select name="channel" required><option value="call">Call</option><option value="whatsapp">WhatsApp</option><option value="manual">Manual / lainnya</option></select></label>
+<label><span>Hasil</span><select id="result" name="result" required><option value="">Pilih hasil...</option><option value="no_answer">Tidak diangkat</option><option value="busy">Sibuk / hubungi lagi</option><option value="requested_wa">Minta WhatsApp</option><option value="wa_sent">WhatsApp terkirim</option><option value="follow_up">Jadwalkan follow-up</option><option value="interested">Tertarik</option><option value="qualified">Qualified</option><option value="not_interested">Tidak tertarik</option><option value="wrong_number">Nomor salah</option><option value="unreachable">Tidak terhubung</option></select></label>
+<label><span>Next follow-up (WIB)</span><input id="next-follow-up" type="datetime-local" name="next_follow_up"></label>
+<label><span>PIC / Owner (opsional)</span><input name="owner" value="{{.Lead.Execution.Owner}}" placeholder="Nama PIC"></label>
+<label class="full"><span>Catatan</span><textarea name="note" placeholder="Contoh: pemilik sedang sibuk, minta dihubungi besok pagi"></textarea></label>
+</div>
+<div class="small warning" id="followup-help">Untuk hasil “Jadwalkan follow-up”, waktu follow-up wajib diisi. Tidak diangkat/sibuk otomatis dijadwalkan retry 24 jam jika dibiarkan kosong.</div>
+<div class="savebar"><button class="primary">Simpan & Lead Berikutnya →</button></div>
+</form></div>
+
+<div class="panel"><h3 style="margin-top:0">Contact History</h3>
+{{if .Lead.History}}<div style="overflow:auto"><table class="history"><thead><tr><th>Waktu</th><th>Channel</th><th>Hasil</th><th>Catatan</th><th>Next Follow-up</th></tr></thead><tbody>{{range .Lead.History}}<tr><td>{{contactTime .ContactedAt}}</td><td>{{channelLabel .Channel}}</td><td>{{resultLabel .Result}}</td><td>{{if .Note}}{{.Note}}{{else}}-{{end}}</td><td>{{contactTime .NextFollowUpAt}}</td></tr>{{end}}</tbody></table></div>{{else}}<div class="muted">Belum ada riwayat kontak.</div>{{end}}
+</div>
+{{end}}
+</div>
+<script>
+const result=document.getElementById('result'), next=document.getElementById('next-follow-up');if(result&&next){result.addEventListener('change',()=>{next.required=result.value==='follow_up';});}
+</script>
+</body></html>
