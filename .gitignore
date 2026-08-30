@@ -1,0 +1,6 @@
+bin/
+data/
+*.csv
+*.db
+.cache/
+.DS_Store
