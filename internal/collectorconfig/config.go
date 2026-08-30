@@ -24,7 +24,9 @@ type FilterConfig struct {
 	ExcludeTitlePatterns []string `json:"exclude_title_patterns"`
 }
 
-type DedupConfig struct{ Keys []string `json:"keys"` }
+type DedupConfig struct {
+	Keys []string `json:"keys"`
+}
 
 type Area struct {
 	Name         string    `json:"name"`

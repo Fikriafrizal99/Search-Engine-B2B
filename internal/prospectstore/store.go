@@ -277,8 +277,8 @@ func (s *Store) Get(ctx context.Context, id int64) (Record, error) {
 func (s *Store) Stats(ctx context.Context, f Filter) (Stats, error) {
 	where, args := buildWhere(f)
 	q := `SELECT COUNT(*),
-		SUM(CASE WHEN TRIM(p.phone)<>'' THEN 1 ELSE 0 END),
-		SUM(CASE WHEN TRIM(p.website)<>'' THEN 1 ELSE 0 END),
+		COALESCE(SUM(CASE WHEN TRIM(p.phone)<>'' THEN 1 ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN TRIM(p.website)<>'' THEN 1 ELSE 0 END), 0),
 		AVG(CASE WHEN p.rating>0 THEN p.rating END)
 		FROM prospects p LEFT JOIN prospect_profiles pr ON pr.prospect_id=p.id` + where
 	var st Stats

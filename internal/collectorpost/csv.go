@@ -158,7 +158,9 @@ func normalizeField(field string) string {
 		return strings.ToLower(strings.TrimSpace(field))
 	}
 }
-func normalized(v string) string { return strings.ToLower(strings.Join(strings.Fields(strings.TrimSpace(v)), " ")) }
+func normalized(v string) string {
+	return strings.ToLower(strings.Join(strings.Fields(strings.TrimSpace(v)), " "))
+}
 func normalizedPhone(v string) string {
 	var b strings.Builder
 	for _, r := range v {
