@@ -2,5 +2,7 @@ bin/
 data/
 *.csv
 *.db
+*.db-shm
+*.db-wal
 .cache/
 .DS_Store

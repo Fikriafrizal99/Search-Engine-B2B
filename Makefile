@@ -1,11 +1,18 @@
-.PHONY: test collector
+.PHONY: tidy test build collector dashboard run
+
+tidy:
+	go mod tidy
 
 test:
 	go test ./...
 
+build: collector dashboard
+
 collector:
 	go build -o bin/search-engine-b2b ./cmd/collector
 
-# Example:
-# ./bin/search-engine-b2b -engine /path/to/google_maps_scraper \
-#   -location "Sukamulya, Cugenang, Kabupaten Cianjur, Jawa Barat, Indonesia"
+dashboard:
+	go build -o bin/b2b-dashboard ./cmd/dashboard
+
+run: build
+	./bin/b2b-dashboard

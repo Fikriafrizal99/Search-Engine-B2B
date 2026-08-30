@@ -1,25 +1,39 @@
 {
   "name": "b2b-prospecting",
-  "description": "Preset prospecting usaha publik untuk Jawa dan Sumatra. Fokus pada listing bisnis publik; tidak digunakan untuk menginferensikan kondisi finansial individu.",
+  "description": "Preset prospecting listing bisnis publik Jawa dan Sumatra. Tidak digunakan untuk menginferensikan kondisi finansial individu.",
   "keywords": [
-    "bengkel mobil",
     "bengkel motor",
-    "toko sparepart mobil",
+    "bengkel mobil",
     "toko sparepart motor",
+    "toko sparepart mobil",
     "toko ban",
     "toko bangunan",
-    "material bangunan",
-    "kontraktor",
-    "distributor",
-    "supplier",
+    "supplier material bangunan",
+    "distributor sembako",
     "grosir sembako",
-    "toko sembako",
+    "agen sembako",
+    "agen gas LPG",
+    "depot air minum",
+    "catering",
+    "laundry",
     "percetakan",
     "konveksi",
-    "laundry",
-    "catering",
     "mebel",
-    "toko furniture"
+    "toko furniture",
+    "toko elektronik",
+    "toko alat listrik",
+    "toko pertanian",
+    "toko pakan ternak",
+    "supplier makanan",
+    "distributor makanan",
+    "toko frozen food",
+    "toko plastik",
+    "toko kemasan",
+    "bakery",
+    "jasa ekspedisi",
+    "cargo",
+    "travel",
+    "rental mobil"
   ],
   "filters": {
     "required_fields": ["title", "address", "phone"],
@@ -27,10 +41,32 @@
     "has_phone": true,
     "has_website": false,
     "include_title_patterns": [],
-    "exclude_title_patterns": ["bank", "leasing", "finance", "financing", "pinjaman", "pegadaian", "gadai", "koperasi simpan pinjam"]
+    "exclude_title_patterns": [
+      "bank",
+      "leasing",
+      "finance",
+      "financing",
+      "pinjaman",
+      "pegadaian",
+      "gadai",
+      "koperasi simpan pinjam"
+    ]
   },
   "dedup": {
     "keys": ["place_id", "data_id", "phone", "title+coordinates"]
   },
-  "output_fields": ["place_id", "data_id", "title", "category", "address", "phone", "website", "latitude", "longitude", "rating", "reviews", "link"]
+  "output_fields": [
+    "place_id",
+    "data_id",
+    "title",
+    "category",
+    "address",
+    "phone",
+    "website",
+    "latitude",
+    "longitude",
+    "rating",
+    "reviews",
+    "link"
+  ]
 }

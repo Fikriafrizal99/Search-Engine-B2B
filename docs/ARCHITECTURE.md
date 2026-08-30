@@ -1,14 +1,14 @@
 # Architecture
 
-Search-Engine-B2B is intentionally separated from the kost/boarding-house search workflow.
+`Search-Engine-B2B` is a standalone B2B prospecting application. It does not share the kost database or kost enrichment schema.
 
 Flow:
 
-1. Region selector/API resolves Province -> Regency/City -> District -> Village/Kelurahan.
-2. B2B preset supplies business-category keywords.
-3. Query builder combines each keyword with the selected administrative scope.
-4. The upstream `gosom/google-maps-scraper` executable performs Google Maps collection.
-5. B2B post-processing requires public business contact fields, removes financing competitors, and deduplicates records.
-6. Output is a B2B-only CSV. CRM/dashboard storage will live only in this repository.
+1. Cascading region selector resolves Province -> Regency/City -> District -> Village/Kelurahan through a public administrative-region API, cached locally.
+2. The B2B preset combines the selected location with business-category queries.
+3. The external `gosom/google-maps-scraper` executable collects public Google Maps listings.
+4. The collector filters competitor/finance listings, requires public business phone data, and deduplicates results.
+5. Clean results are imported into `data/prospects.db`.
+6. The web dashboard manages B2B-only profile fields, contact status, QC, and exports CSV/XLSX.
 
-The repository must not add kost-specific fields such as occupant segment, rent price, furnishing, or boarding-house facilities.
+No fields for boarding-house occupant gender, rent price, furnishing, or kost facilities exist in this database.

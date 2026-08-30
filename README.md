@@ -1,42 +1,78 @@
 # Search Engine B2B
 
-Mesin pencari prospek bisnis publik B2B berbasis Google Maps, **terpisah sepenuhnya dari mesin pencari kos**.
+Standalone search engine and prospect database for **public B2B listings** from Google Maps, intentionally separated from the kost/boarding-house project.
 
-## Fokus
+## What is included
 
-- Jawa + Sumatra
-- Filter lokasi sampai Provinsi -> Kabupaten/Kota -> Kecamatan -> Desa/Kelurahan
-- Database wilayah dari public wilayah API dengan cache lokal
-- Query berdasarkan kategori usaha
-- Hanya listing bisnis publik
-- Filter nomor telepon bisnis publik
-- Dedup place ID / data ID / telepon / koordinat
-- Mengecualikan bank, leasing, finance, pinjaman, pegadaian, dan koperasi simpan pinjam
+- Java + Sumatra geographic scope
+- Cascading location selector: Province -> Regency/City -> District -> Village/Kelurahan
+- Public region API with local cache
+- 32 default business-category queries
+- Google Maps collection through the upstream `gosom/google-maps-scraper` executable
+- Filtering and deduplication
+- SQLite prospect database (`data/prospects.db`)
+- B2B dashboard
+- Business scale, prospect priority, contact status, verification, and QC
+- CSV and XLSX export
+- Manual CSV import
+- GitHub Actions CI
 
-## Engine
+## B2B-only data model
 
-Repository ini menyimpan logic B2B sendiri. Scraping Google Maps dijalankan oleh executable upstream `gosom/google-maps-scraper`, sehingga codebase B2B tidak tercampur dengan project kos.
+The database stores business listing fields plus:
 
-Build collector:
+- Business Scale
+- Priority
+- Contact Status
+- Detailed Business Type
+- Operational Scale
+- Products / Services
+- Service Area
+- Prospect Fit
+- Verification Status
+- Internal Notes
+- QC Status / QC Note
+
+There are **no kost-specific fields** in this repository.
+
+## Setup
+
+Requirements:
+
+- Go 1.22+
+- A built `gosom/google-maps-scraper` executable available locally
 
 ```bash
-go test ./...
-go build -o bin/search-engine-b2b ./cmd/collector
+go mod tidy
+make test
+make build
 ```
 
-Contoh pencarian satu desa:
+Place or point to the upstream scraper binary, then run:
+
+```bash
+./bin/b2b-dashboard \
+  -engine /path/to/google_maps_scraper \
+  -collector ./bin/search-engine-b2b
+```
+
+Open:
+
+```text
+http://localhost:8080
+```
+
+## Direct collector example
 
 ```bash
 ./bin/search-engine-b2b \
   -engine /path/to/google_maps_scraper \
   -location "Sukamulya, Cugenang, Kabupaten Cianjur, Jawa Barat, Indonesia" \
-  -output data/prospects.csv
+  -- -c 2 -depth 5
 ```
 
-Dengan 18 keyword default, satu desa menghasilkan 18 query yang spesifik ke lokasi tersebut.
+The filtered CSV is written to `data/prospects.csv` and imported into `data/prospects.db` by default.
 
-## Output awal
+## Important boundary
 
-`place_id, data_id, title, category, address, phone, website, latitude, longitude, review_rating, review_count, link`
-
-Dashboard dan database prospek akan dikembangkan hanya di repository ini.
+This tool discovers and organizes **public business listings**. Priority and prospect-fit fields are for business workflow/contact management; they must not be used to infer that a named person or business is in financial distress.
