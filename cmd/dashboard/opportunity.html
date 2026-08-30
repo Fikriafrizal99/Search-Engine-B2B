@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opportunity · Search Engine B2B</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,sans-serif;color:#172033;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1180px;margin:auto;padding:22px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:15px}.top h1{margin:0}.muted{color:#6f7a8d;font-size:13px}.btn,button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 13px;border-radius:10px;border:1px solid #d7dfeb;background:#fff;color:#172033;text-decoration:none;font:inherit;cursor:pointer}.primary{background:#172033;color:#fff;border-color:#172033}.success{background:#217a3c;color:#fff;border-color:#217a3c}.panel{background:#fff;border:1px solid #e6ebf3;border-radius:14px;padding:18px;margin-bottom:15px}.head{display:flex;justify-content:space-between;gap:14px}.name{font-size:25px;font-weight:800;margin:4px 0}.badge{display:inline-flex;padding:5px 8px;border-radius:999px;background:#eef2f7;font-size:11px;font-weight:750}.info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px}.item{border-top:1px solid #edf1f6;padding-top:9px}.item small{display:block;color:#6f7a8d;margin-bottom:4px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}label span{display:block;font-size:12px;color:#667085;margin-bottom:4px}input,select,textarea{width:100%;border:1px solid #d7dfeb;border-radius:9px;padding:9px 10px;font:inherit;background:#fff}input,select{min-height:42px}textarea{min-height:90px;resize:vertical}.checks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.check{border:1px solid #e1e7f0;border-radius:9px;padding:10px}.check input{width:auto;min-height:auto}.save{display:flex;justify-content:flex-end;margin-top:12px}.callouts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.history{width:100%;border-collapse:collapse}.history th,.history td{padding:9px;border-bottom:1px solid #eef2f7;text-align:left;font-size:13px}.history th{color:#667085}.notice{background:#f7f9fc;padding:10px 12px;border-radius:9px;font-size:12px;color:#657086;margin-top:10px}.submission{border:1px solid #dfe7f1;border-radius:12px;padding:14px;background:#fbfcfe}@media(max-width:800px){.grid,.info{grid-template-columns:1fr}.full{grid-column:auto}.checks{grid-template-columns:1fr 1fr}.top,.head{flex-direction:column;align-items:stretch}}@media(max-width:520px){.wrap{padding:13px}.checks{grid-template-columns:1fr}.callouts .btn{flex:1}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="top"><div><h1>Opportunity OP-{{.Opportunity.ID}}</h1><div class="muted">Qualification dan submission workspace</div></div><div><a class="btn" href="/pipeline">← Pipeline</a> <a class="btn" href="/contact?id={{.Prospect.ID}}">Contact</a></div></div>
+
+<div class="panel"><div class="head"><div><span class="badge">{{oppLabel .Opportunity.Status}}</span><div class="name">{{.Prospect.Title}}</div><div class="muted">{{.Prospect.Category}} · {{.Prospect.LocationScope}}</div></div><div class="muted">Prospect #{{.Prospect.ID}}</div></div>
+<div class="info"><div class="item"><small>Telepon</small>{{if .Prospect.Phone}}{{.Prospect.Phone}}{{else}}-{{end}}</div><div class="item"><small>Alamat</small>{{.Prospect.Address}}</div><div class="item"><small>Next Action</small>{{if .Opportunity.NextAction}}{{.Opportunity.NextAction}}{{else}}-{{end}}</div></div>
+<div class="callouts">{{if .Prospect.Phone}}<a class="btn" href="tel:+{{wa .Prospect.Phone}}">☎ Call</a>{{end}}{{if .Prospect.MapsURL}}<a class="btn" target="_blank" rel="noreferrer" href="{{.Prospect.MapsURL}}">Google Maps</a>{{end}}</div>
+</div>
+
+<div class="panel"><h3 style="margin-top:0">Qualification & Next Action</h3>
+<form method="post" action="/opportunity/{{.Opportunity.ID}}">
+<div class="grid">
+<label><span>Status</span><select name="status" required>
+<option value="qualifying" {{if eq .Opportunity.Status "qualifying"}}selected{{end}}>Qualifying</option>
+<option value="qualified" {{if eq .Opportunity.Status "qualified"}}selected{{end}}>Qualified</option>
+<option value="docs_pending" {{if eq .Opportunity.Status "docs_pending"}}selected{{end}}>Docs Pending</option>
+<option value="ready_to_submit" {{if eq .Opportunity.Status "ready_to_submit"}}selected{{end}}>Ready to Submit</option>
+<option value="submitted" {{if eq .Opportunity.Status "submitted"}}selected{{end}}>Submitted</option>
+<option value="not_qualified" {{if eq .Opportunity.Status "not_qualified"}}selected{{end}}>Not Qualified</option>
+<option value="cancelled" {{if eq .Opportunity.Status "cancelled"}}selected{{end}}>Cancelled</option>
+</select></label>
+<label><span>Produk diminati</span><input name="product" value="{{.Opportunity.Product}}" placeholder="Contoh: BPKB Mobil"></label>
+<label class="full"><span>Kebutuhan / konteks yang customer sampaikan</span><textarea name="customer_need" placeholder="Catat hanya informasi yang disampaikan customer; jangan menginfer kebutuhan finansial dari data Maps.">{{.Opportunity.CustomerNeed}}</textarea></label>
+<label><span>Jenis unit</span><input name="unit_type" value="{{.Opportunity.UnitType}}" placeholder="Mobil / Motor"></label>
+<label><span>Model unit</span><input name="unit_model" value="{{.Opportunity.UnitModel}}" placeholder="Contoh: Avanza"></label>
+<label><span>Tahun unit</span><input type="number" name="unit_year" min="0" max="2200" value="{{if gt .Opportunity.UnitYear 0}}{{.Opportunity.UnitYear}}{{end}}"></label>
+<label><span>Kepemilikan</span><input name="ownership" value="{{.Opportunity.Ownership}}" placeholder="Contoh: sendiri"></label>
+<label><span>Preferred contact</span><select name="preferred_contact"><option value="">Belum ditentukan</option><option value="call" {{if eq .Opportunity.PreferredContact "call"}}selected{{end}}>Call</option><option value="whatsapp" {{if eq .Opportunity.PreferredContact "whatsapp"}}selected{{end}}>WhatsApp</option></select></label>
+<label><span>PIC / Owner</span><input name="owner" value="{{.Opportunity.Owner}}"></label>
+<label><span>Next Action</span><input name="next_action" value="{{.Opportunity.NextAction}}" placeholder="Contoh: Kirim simulasi"></label>
+<label><span>Due Next Action (WIB)</span><input type="datetime-local" name="next_action_at" value="{{inputTime .Opportunity.NextActionAt}}"></label>
+<label class="full"><span>Catatan internal</span><textarea name="notes">{{.Opportunity.Notes}}</textarea></label>
+</div>
+<h4>Document Readiness</h4><div class="checks">
+<label class="check"><input type="checkbox" name="doc_ktp" value="1" {{if .Opportunity.DocKTP}}checked{{end}}> KTP tersedia</label>
+<label class="check"><input type="checkbox" name="doc_stnk" value="1" {{if .Opportunity.DocSTNK}}checked{{end}}> STNK tersedia</label>
+<label class="check"><input type="checkbox" name="doc_bpkb" value="1" {{if .Opportunity.DocBPKB}}checked{{end}}> BPKB tersedia</label>
+<label class="check"><input type="checkbox" name="doc_additional" value="1" {{if .Opportunity.DocAdditional}}checked{{end}}> Dokumen tambahan siap</label>
+</div>
+<div class="notice">Checklist hanya mencatat kesiapan. File KTP/BPKB atau dokumen sensitif tidak disimpan di database Search Engine B2B.</div>
+<div class="save"><button class="primary">Simpan Opportunity</button></div>
+</form></div>
+
+<div class="panel"><h3 style="margin-top:0">Submission ke Partner</h3>
+{{if .HasSubmission}}
+<div class="submission"><div class="head"><div><b>SUB-{{.Submission.ID}}</b><div class="muted">{{.Submission.Partner}}</div></div><span class="badge">{{submissionLabel .Submission.Status}}</span></div>
+<form method="post" action="/submission/{{.Submission.ID}}" style="margin-top:12px"><div class="grid">
+<label><span>Partner leasing</span><input name="partner" value="{{.Submission.Partner}}" required></label>
+<label><span>Produk</span><input name="product" value="{{.Submission.Product}}"></label>
+<label><span>Reference No.</span><input name="reference_no" value="{{.Submission.ReferenceNo}}"></label>
+<label><span>Status partner</span><select name="status" required><option value="submitted" {{if eq .Submission.Status "submitted"}}selected{{end}}>Submitted</option><option value="processing" {{if eq .Submission.Status "processing"}}selected{{end}}>Processing</option><option value="approved" {{if eq .Submission.Status "approved"}}selected{{end}}>Approved</option><option value="rejected" {{if eq .Submission.Status "rejected"}}selected{{end}}>Rejected</option><option value="cancelled" {{if eq .Submission.Status "cancelled"}}selected{{end}}>Cancelled</option><option value="disbursed" {{if eq .Submission.Status "disbursed"}}selected{{end}}>Disbursed</option></select></label>
+<label><span>Nominal disbursed aktual</span><input type="number" name="disbursed_amount" min="0" step="1" value="{{if gt .Submission.DisbursedAmount 0.0}}{{printf "%.0f" .Submission.DisbursedAmount}}{{end}}"></label>
+<label class="full"><span>Outcome / catatan dari partner</span><textarea name="outcome_note">{{.Submission.OutcomeNote}}</textarea></label>
+</div><div class="notice">Status Approved/Rejected/Processing adalah hasil dari partner leasing, bukan keputusan otomatis aplikasi.</div><div class="save"><button class="success">Update Submission</button></div></form>
+<div class="info"><div class="item"><small>Submitted</small>{{contactTime .Submission.SubmittedAt}}</div><div class="item"><small>Approved</small>{{contactTime .Submission.ApprovedAt}}</div><div class="item"><small>Disbursed</small>{{contactTime .Submission.DisbursedAt}}</div><div class="item"><small>Nominal aktual</small>{{money .Submission.DisbursedAmount}}</div></div>
+</div>
+{{else}}
+<div class="muted" style="margin-bottom:10px">Belum ada submission. Idealnya dibuat setelah status opportunity Ready to Submit.</div>
+<form method="post" action="/opportunity/{{.Opportunity.ID}}/submission"><div class="grid"><label><span>Partner leasing</span><input name="partner" required placeholder="Nama partner"></label><label><span>Produk</span><input name="product" value="{{.Opportunity.Product}}"></label><label><span>Reference No. (opsional)</span><input name="reference_no"></label><label class="full"><span>Catatan awal</span><textarea name="outcome_note"></textarea></label></div><div class="save"><button class="success">Buat Submission</button></div></form>
+{{end}}
+</div>
+
+<div class="panel"><h3 style="margin-top:0">Opportunity History</h3>{{if .History}}<div style="overflow:auto"><table class="history"><thead><tr><th>Waktu</th><th>Event</th><th>Status</th><th>Catatan</th></tr></thead><tbody>{{range .History}}<tr><td>{{contactTime .CreatedAt}}</td><td>{{.EventType}}</td><td>{{if .FromStatus}}{{oppLabel .FromStatus}} → {{end}}{{oppLabel .ToStatus}}</td><td>{{if .Note}}{{.Note}}{{else}}-{{end}}</td></tr>{{end}}</tbody></table></div>{{else}}<div class="muted">Belum ada history.</div>{{end}}</div>
+</div></body></html>
