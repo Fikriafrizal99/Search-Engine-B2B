@@ -89,6 +89,7 @@ func main() {
 	mux.HandleFunc("GET /api/geo/regencies", a.handleRegencies)
 	mux.HandleFunc("GET /api/geo/districts", a.handleDistricts)
 	mux.HandleFunc("GET /api/geo/villages", a.handleVillages)
+	registerContactRoutes(mux, a)
 
 	log.Printf("Search Engine B2B dashboard: http://localhost%s", *addr)
 	log.Fatal(http.ListenAndServe(*addr, mux))
@@ -244,11 +245,13 @@ func (a *app) finishCollect(message string) {
 	a.collect = collectState{Running: false, Message: message}
 	a.collectMu.Unlock()
 }
+
 func (a *app) collectStatus() collectState {
 	a.collectMu.RLock()
 	defer a.collectMu.RUnlock()
 	return a.collect
 }
+
 func (a *app) handleCollectStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, a.collectStatus())
 }
@@ -292,18 +295,22 @@ func (a *app) handleProvinces(w http.ResponseWriter, r *http.Request) {
 	items, err := a.geo.Provinces(r.Context())
 	writeGeo(w, items, err)
 }
+
 func (a *app) handleRegencies(w http.ResponseWriter, r *http.Request) {
 	items, err := a.geo.Regencies(r.Context(), r.URL.Query().Get("province_id"))
 	writeGeo(w, items, err)
 }
+
 func (a *app) handleDistricts(w http.ResponseWriter, r *http.Request) {
 	items, err := a.geo.Districts(r.Context(), r.URL.Query().Get("regency_id"))
 	writeGeo(w, items, err)
 }
+
 func (a *app) handleVillages(w http.ResponseWriter, r *http.Request) {
 	items, err := a.geo.Villages(r.Context(), r.URL.Query().Get("district_id"))
 	writeGeo(w, items, err)
 }
+
 func writeGeo(w http.ResponseWriter, items []geodata.Region, err error) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
@@ -312,6 +319,7 @@ func writeGeo(w http.ResponseWriter, items []geodata.Region, err error) {
 	w.Header().Set("Cache-Control", "private, max-age=3600")
 	writeJSON(w, items)
 }
+
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(v)
@@ -326,6 +334,7 @@ func filterFromRequest(r *http.Request) prospectstore.Filter {
 		VerificationStatus: q.Get("verification_status"), QCStatus: q.Get("qc_status"),
 	}
 }
+
 func boundedInt(v string, fallback, minV, maxV int) int {
 	n, err := strconv.Atoi(v)
 	if err != nil {
@@ -339,6 +348,7 @@ func boundedInt(v string, fallback, minV, maxV int) int {
 	}
 	return n
 }
+
 func waNumber(phone string) string {
 	var b strings.Builder
 	for _, r := range phone {
@@ -352,6 +362,7 @@ func waNumber(phone string) string {
 	}
 	return v
 }
+
 func shortTime(v string) string {
 	t, err := time.Parse(time.RFC3339, v)
 	if err != nil {
@@ -362,21 +373,27 @@ func shortTime(v string) string {
 	}
 	return t.Local().Format("02 Jan 2006 15:04")
 }
+
 func scaleLabel(v string) string {
 	return labels(map[string]string{"mikro": "Mikro", "kecil": "Kecil", "menengah": "Menengah", "besar": "Besar"}, v, "Belum diketahui")
 }
+
 func priorityLabel(v string) string {
 	return labels(map[string]string{"high": "High", "medium": "Medium", "low": "Low", "hold": "Hold"}, v, "Belum dinilai")
 }
+
 func contactLabel(v string) string {
 	return labels(map[string]string{"not_contacted": "Belum dihubungi", "contacted": "Sudah dihubungi", "follow_up": "Follow up", "interested": "Tertarik", "not_interested": "Tidak tertarik", "unreachable": "Tidak terhubung"}, v, "Belum dihubungi")
 }
+
 func verificationLabel(v string) string {
 	return labels(map[string]string{"verified": "Terverifikasi", "needs_check": "Perlu dicek", "unverified": "Belum diverifikasi"}, v, "Belum diverifikasi")
 }
+
 func qcLabel(v string) string {
 	return labels(map[string]string{"valid": "Valid", "needs_review": "Needs Review", "exclude": "Exclude", "unreviewed": "Unreviewed"}, v, "Unreviewed")
 }
+
 func labels(m map[string]string, v, fallback string) string {
 	if x, ok := m[v]; ok {
 		return x
