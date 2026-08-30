@@ -103,9 +103,9 @@ type SubmissionInput struct {
 }
 
 type PipelineItem struct {
-	Prospect    Prospect
-	Opportunity Opportunity
-	Submission  Submission
+	Prospect      Prospect
+	Opportunity   Opportunity
+	Submission    Submission
 	HasSubmission bool
 }
 
