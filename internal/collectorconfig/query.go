@@ -10,21 +10,80 @@ func BuildQueries(preset Preset, area Area, subarea string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buildQueries(preset, suffixes)
+	return buildQueries(preset.Keywords, suffixes)
 }
 
 func BuildQueriesForLocation(preset Preset, location string) ([]string, error) {
+	return BuildQueriesForKeywordsLocation(preset.Keywords, location)
+}
+
+// BuildQueriesForKeywordsLocation combines arbitrary business keywords with an
+// already-resolved administrative location from province down to village.
+func BuildQueriesForKeywordsLocation(keywords []string, location string) ([]string, error) {
 	location = strings.TrimSpace(location)
 	if location == "" {
 		return nil, fmt.Errorf("location is required")
 	}
-	return buildQueries(preset, []string{location})
+	return buildQueries(keywords, []string{location})
 }
 
-func buildQueries(preset Preset, suffixes []string) ([]string, error) {
-	queries := make([]string, 0, len(preset.Keywords)*len(suffixes))
+// ParseKeywords accepts newline, comma, or semicolon-separated custom keywords.
+// Empty and duplicate entries are removed while preserving input order.
+func ParseKeywords(raw string) []string {
+	parts := strings.FieldsFunc(raw, func(r rune) bool {
+		return r == '\n' || r == '\r' || r == ',' || r == ';'
+	})
+	out := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+	for _, part := range parts {
+		keyword := strings.TrimSpace(part)
+		if keyword == "" {
+			continue
+		}
+		key := strings.ToLower(keyword)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, keyword)
+	}
+	return out
+}
+
+// MergeKeywords optionally keeps the preset keywords and appends custom ones.
+// Duplicates are removed case-insensitively.
+func MergeKeywords(defaults, custom []string, includeDefaults bool) []string {
+	capacity := len(custom)
+	if includeDefaults {
+		capacity += len(defaults)
+	}
+	out := make([]string, 0, capacity)
+	seen := make(map[string]struct{}, capacity)
+	appendUnique := func(items []string) {
+		for _, item := range items {
+			keyword := strings.TrimSpace(item)
+			if keyword == "" {
+				continue
+			}
+			key := strings.ToLower(keyword)
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			out = append(out, keyword)
+		}
+	}
+	if includeDefaults {
+		appendUnique(defaults)
+	}
+	appendUnique(custom)
+	return out
+}
+
+func buildQueries(keywords, suffixes []string) ([]string, error) {
+	queries := make([]string, 0, len(keywords)*len(suffixes))
 	seen := map[string]struct{}{}
-	for _, keyword := range preset.Keywords {
+	for _, keyword := range keywords {
 		keyword = strings.TrimSpace(keyword)
 		if keyword == "" {
 			continue
