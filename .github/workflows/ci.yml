@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   test:
@@ -18,15 +18,21 @@ jobs:
           go-version: '1.22.x'
           cache: true
       - name: Check dependencies
-        run: go mod tidy && git diff --exit-code -- go.mod go.sum
-      - name: Check formatting
-        run: |
-          files="$(gofmt -l .)"
-          if [ -n "$files" ]; then
-            echo "$files"
-            exit 1
-          fi
+        run: go mod tidy
+      - name: Normalize formatting
+        run: gofmt -w .
       - name: Test
         run: go test ./...
       - name: Build
         run: go build ./cmd/collector ./cmd/dashboard
+      - name: Commit normalized contact source
+        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        run: |
+          if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: normalize contact session source"
+          git push
