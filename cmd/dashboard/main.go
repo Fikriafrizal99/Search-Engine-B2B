@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Fikriafrizal99/Search-Engine-B2B/internal/collectorconfig"
 	"github.com/Fikriafrizal99/Search-Engine-B2B/internal/geodata"
 	"github.com/Fikriafrizal99/Search-Engine-B2B/internal/prospectstore"
 )
@@ -168,6 +169,24 @@ func (a *app) handleCollect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "pilih lokasi pencarian", http.StatusBadRequest)
 		return
 	}
+
+	customKeywords := collectorconfig.ParseKeywords(r.FormValue("keywords"))
+	includeDefaults := r.FormValue("include_defaults") == "1"
+	if len(customKeywords) == 0 && !includeDefaults {
+		http.Error(w, "isi minimal satu query atau aktifkan 32 query default", http.StatusBadRequest)
+		return
+	}
+	if len(customKeywords) > 100 {
+		http.Error(w, "maksimal 100 custom query per sekali collect", http.StatusBadRequest)
+		return
+	}
+	for _, keyword := range customKeywords {
+		if len([]rune(keyword)) > 120 {
+			http.Error(w, "setiap query maksimal 120 karakter", http.StatusBadRequest)
+			return
+		}
+	}
+
 	depth := boundedInt(r.FormValue("depth"), 5, 1, 30)
 	concurrency := boundedInt(r.FormValue("concurrency"), 2, 1, 8)
 	a.collectMu.Lock()
@@ -176,13 +195,21 @@ func (a *app) handleCollect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "collector masih berjalan", http.StatusConflict)
 		return
 	}
-	a.collect = collectState{Running: true, Message: "Collect dimulai: " + location, StartedAt: time.Now().Format("2006-01-02 15:04:05")}
+	mode := fmt.Sprintf("%d custom query", len(customKeywords))
+	if includeDefaults {
+		if len(customKeywords) == 0 {
+			mode = "32 query default"
+		} else {
+			mode += " + 32 default"
+		}
+	}
+	a.collect = collectState{Running: true, Message: "Collect dimulai: " + location + " · " + mode, StartedAt: time.Now().Format("2006-01-02 15:04:05")}
 	a.collectMu.Unlock()
-	go a.runCollector(location, depth, concurrency)
+	go a.runCollector(location, strings.Join(customKeywords, "\n"), includeDefaults, depth, concurrency)
 	http.Redirect(w, r, "/?collect=started", http.StatusSeeOther)
 }
 
-func (a *app) runCollector(location string, depth, concurrency int) {
+func (a *app) runCollector(location, keywords string, includeDefaults bool, depth, concurrency int) {
 	if err := os.MkdirAll("data", 0o755); err != nil {
 		a.finishCollect("Gagal membuat folder data: " + err.Error())
 		return
@@ -195,7 +222,14 @@ func (a *app) runCollector(location string, depth, concurrency int) {
 		return
 	}
 	defer logFile.Close()
-	args := []string{"-location", location, "-config-dir", a.configDir, "-engine", a.enginePath, "-output", output, "-db", a.dbPath, "--", "-c", strconv.Itoa(concurrency), "-depth", strconv.Itoa(depth)}
+	args := []string{"-location", location, "-config-dir", a.configDir, "-engine", a.enginePath, "-output", output, "-db", a.dbPath}
+	if strings.TrimSpace(keywords) != "" {
+		args = append(args, "-keywords", keywords)
+	}
+	if includeDefaults {
+		args = append(args, "-include-defaults=true")
+	}
+	args = append(args, "--", "-c", strconv.Itoa(concurrency), "-depth", strconv.Itoa(depth))
 	cmd := exec.CommandContext(context.Background(), a.collectorPath, args...)
 	cmd.Stdout, cmd.Stderr = logFile, logFile
 	if err := cmd.Run(); err != nil {
