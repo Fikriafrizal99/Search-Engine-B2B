@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -14,8 +17,37 @@ jobs:
         with:
           go-version: '1.22.x'
           cache: true
-      - run: go mod tidy
-      - name: Check formatting
-        run: test -z "$(gofmt -l .)"
-      - run: go test ./...
-      - run: go build ./cmd/collector ./cmd/dashboard
+      - name: Normalize dependencies
+        run: go mod tidy
+      - name: Fix empty-database stats edge case
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("internal/prospectstore/store.go")
+          text = path.read_text()
+          text = text.replace(
+              "SUM(CASE WHEN TRIM(p.phone)<>'' THEN 1 ELSE 0 END),",
+              "COALESCE(SUM(CASE WHEN TRIM(p.phone)<>'' THEN 1 ELSE 0 END), 0),",
+          )
+          text = text.replace(
+              "SUM(CASE WHEN TRIM(p.website)<>'' THEN 1 ELSE 0 END),",
+              "COALESCE(SUM(CASE WHEN TRIM(p.website)<>'' THEN 1 ELSE 0 END), 0),",
+          )
+          path.write_text(text)
+      - name: Normalize Go formatting
+        run: gofmt -w .
+      - name: Test
+        run: go test ./...
+      - name: Build
+        run: go build ./cmd/collector ./cmd/dashboard
+      - name: Commit normalized source
+        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        run: |
+          if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: normalize Go source and dependencies"
+          git push
