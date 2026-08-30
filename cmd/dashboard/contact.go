@@ -44,6 +44,7 @@ var jakartaLocation = func() *time.Location {
 func registerContactRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("GET /contact", a.handleContactSession)
 	mux.HandleFunc("POST /contact/{id}/result", a.handleContactResult)
+	registerPipelineRoutes(mux, a)
 }
 
 func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
@@ -118,10 +119,11 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	result := strings.TrimSpace(strings.ToLower(r.FormValue("result")))
 	_, err = a.store.LogContact(r.Context(), prospectstore.ContactInput{
 		ProspectID:     id,
 		Channel:        r.FormValue("channel"),
-		Result:         r.FormValue("result"),
+		Result:         result,
 		Note:           r.FormValue("note"),
 		NextFollowUpAt: next,
 		Owner:          strings.TrimSpace(r.FormValue("owner")),
@@ -129,6 +131,17 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+
+	if result == "interested" || result == "qualified" {
+		status := prospectstore.OpportunityQualifying
+		if result == "qualified" {
+			status = prospectstore.OpportunityQualified
+		}
+		if _, err := a.store.EnsureOpportunity(r.Context(), id, status); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	http.Redirect(w, r, "/contact?mode="+url.QueryEscape(mode), http.StatusSeeOther)
