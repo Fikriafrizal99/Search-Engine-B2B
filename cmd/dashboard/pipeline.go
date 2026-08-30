@@ -30,6 +30,7 @@ var pipelineFuncs = template.FuncMap{
 	"oppLabel":        opportunityStatusLabel,
 	"submissionLabel": submissionStatusLabel,
 	"contactTime":     contactTime,
+	"inputTime":       opportunityInputTime,
 	"money":           moneyIDR,
 	"wa":              waNumber,
 }
@@ -207,6 +208,17 @@ func submissionStatusLabel(v string) string {
 		"submitted": "Submitted", "processing": "Processing", "approved": "Approved",
 		"rejected": "Rejected", "cancelled": "Cancelled", "disbursed": "Disbursed",
 	}, v, v)
+}
+
+func opportunityInputTime(v string) string {
+	if strings.TrimSpace(v) == "" {
+		return ""
+	}
+	t, err := time.Parse(time.RFC3339, v)
+	if err != nil {
+		return ""
+	}
+	return t.In(jakartaLocation).Format("2006-01-02T15:04")
 }
 
 func moneyIDR(v float64) string {
