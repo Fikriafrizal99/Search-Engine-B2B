@@ -32,12 +32,19 @@ type app struct {
 	enginePath    string
 	collectMu     sync.RWMutex
 	collect       collectState
+	collectCmd    *exec.Cmd
 }
 
 type collectState struct {
-	Running   bool   `json:"running"`
-	Message   string `json:"message"`
-	StartedAt string `json:"started_at"`
+	Running         bool   `json:"running"`
+	Message         string `json:"message"`
+	StartedAt       string `json:"started_at"`
+	StartedUnix     int64  `json:"started_unix"`
+	Phase           string `json:"phase"`
+	CancelRequested bool   `json:"cancel_requested"`
+	ElapsedSeconds  int64  `json:"elapsed_seconds"`
+	LogTail         string `json:"log_tail"`
+	CanCancel       bool   `json:"can_cancel"`
 }
 
 type dashboardData struct {
@@ -81,6 +88,7 @@ func main() {
 	mux.HandleFunc("GET /lead/{id}", a.handleDetail)
 	mux.HandleFunc("POST /lead/{id}", a.handleSave)
 	mux.HandleFunc("POST /collect", a.handleCollect)
+	mux.HandleFunc("POST /collect/cancel", a.handleCollectCancel)
 	mux.HandleFunc("GET /api/collect/status", a.handleCollectStatus)
 	mux.HandleFunc("POST /import", a.handleImport)
 	mux.HandleFunc("GET /export.csv", a.handleExportCSV)
@@ -172,9 +180,28 @@ func (a *app) handleCollect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	customKeywords := collectorconfig.ParseKeywords(r.FormValue("keywords"))
-	includeDefaults := r.FormValue("include_defaults") == "1"
+	queryMode := strings.TrimSpace(r.FormValue("query_mode"))
+	if queryMode == "" {
+		if r.FormValue("include_defaults") == "1" {
+			queryMode = "custom_plus_defaults"
+		} else {
+			queryMode = "custom"
+		}
+	}
+	includeDefaults := false
+	switch queryMode {
+	case "custom":
+	case "custom_plus_defaults":
+		includeDefaults = true
+	case "defaults_only":
+		customKeywords = nil
+		includeDefaults = true
+	default:
+		http.Error(w, "mode query tidak valid", http.StatusBadRequest)
+		return
+	}
 	if len(customKeywords) == 0 && !includeDefaults {
-		http.Error(w, "isi minimal satu query atau aktifkan 32 query default", http.StatusBadRequest)
+		http.Error(w, "isi minimal satu custom query", http.StatusBadRequest)
 		return
 	}
 	if len(customKeywords) > 100 {
@@ -190,6 +217,7 @@ func (a *app) handleCollect(w http.ResponseWriter, r *http.Request) {
 
 	depth := boundedInt(r.FormValue("depth"), 5, 1, 30)
 	concurrency := boundedInt(r.FormValue("concurrency"), 2, 1, 8)
+	now := time.Now()
 	a.collectMu.Lock()
 	if a.collect.Running {
 		a.collectMu.Unlock()
@@ -197,14 +225,19 @@ func (a *app) handleCollect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	mode := fmt.Sprintf("%d custom query", len(customKeywords))
-	if includeDefaults {
-		if len(customKeywords) == 0 {
-			mode = "32 query default"
-		} else {
-			mode += " + 32 default"
-		}
+	if queryMode == "defaults_only" {
+		mode = "32 query rekomendasi"
+	} else if includeDefaults {
+		mode += " + 32 rekomendasi"
 	}
-	a.collect = collectState{Running: true, Message: "Collect dimulai: " + location + " · " + mode, StartedAt: time.Now().Format("2006-01-02 15:04:05")}
+	a.collect = collectState{
+		Running:     true,
+		Message:     "Collect dimulai: " + location + " · " + mode,
+		StartedAt:   now.Format("2006-01-02 15:04:05"),
+		StartedUnix: now.Unix(),
+		Phase:       "Menyiapkan",
+	}
+	a.collectCmd = nil
 	a.collectMu.Unlock()
 	go a.runCollector(location, strings.Join(customKeywords, "\n"), includeDefaults, depth, concurrency)
 	http.Redirect(w, r, "/?collect=started", http.StatusSeeOther)
@@ -212,17 +245,18 @@ func (a *app) handleCollect(w http.ResponseWriter, r *http.Request) {
 
 func (a *app) runCollector(location, keywords string, includeDefaults bool, depth, concurrency int) {
 	if err := os.MkdirAll("data", 0o755); err != nil {
-		a.finishCollect("Gagal membuat folder data: " + err.Error())
+		a.finishCollect("Gagal membuat folder data: "+err.Error(), "Gagal")
 		return
 	}
 	output := filepath.Join("data", "latest-b2b.csv")
 	logPath := filepath.Join("data", "collector-last.log")
 	logFile, err := os.Create(logPath)
 	if err != nil {
-		a.finishCollect("Gagal membuat log: " + err.Error())
+		a.finishCollect("Gagal membuat log: "+err.Error(), "Gagal")
 		return
 	}
 	defer logFile.Close()
+
 	args := []string{"-location", location, "-config-dir", a.configDir, "-engine", a.enginePath, "-output", output, "-db", a.dbPath}
 	if strings.TrimSpace(keywords) != "" {
 		args = append(args, "-keywords", keywords)
@@ -233,23 +267,165 @@ func (a *app) runCollector(location, keywords string, includeDefaults bool, dept
 	args = append(args, "--", "-c", strconv.Itoa(concurrency), "-depth", strconv.Itoa(depth))
 	cmd := exec.CommandContext(context.Background(), a.collectorPath, args...)
 	cmd.Stdout, cmd.Stderr = logFile, logFile
-	if err := cmd.Run(); err != nil {
-		a.finishCollect(fmt.Sprintf("Collect gagal: %v · lihat %s", err, logPath))
+
+	a.collectMu.Lock()
+	if a.collect.CancelRequested {
+		a.collectMu.Unlock()
+		a.finishCollect("Collect dibatalkan oleh pengguna.", "Dibatalkan")
 		return
 	}
-	a.finishCollect("Collect selesai · database diperbarui · " + output)
+	a.collectCmd = cmd
+	a.collect.Phase = "Menjalankan scraper"
+	a.collectMu.Unlock()
+
+	if err := cmd.Start(); err != nil {
+		a.finishCollect(fmt.Sprintf("Collect gagal dijalankan: %v · lihat %s", err, logPath), "Gagal")
+		return
+	}
+	a.collectMu.RLock()
+	cancelRequested := a.collect.CancelRequested
+	a.collectMu.RUnlock()
+	if cancelRequested {
+		interruptProcess(cmd)
+	}
+
+	err = cmd.Wait()
+	a.collectMu.RLock()
+	cancelRequested = a.collect.CancelRequested
+	a.collectMu.RUnlock()
+	if err != nil {
+		if cancelRequested {
+			a.finishCollect("Collect dibatalkan oleh pengguna.", "Dibatalkan")
+			return
+		}
+		a.finishCollect(fmt.Sprintf("Collect gagal: %v · lihat %s", err, logPath), "Gagal")
+		return
+	}
+	a.finishCollect("Collect selesai · database diperbarui · "+output, "Selesai")
 }
 
-func (a *app) finishCollect(message string) {
+func (a *app) handleCollectCancel(w http.ResponseWriter, r *http.Request) {
 	a.collectMu.Lock()
-	a.collect = collectState{Running: false, Message: message}
+	if !a.collect.Running {
+		a.collectMu.Unlock()
+		http.Error(w, "tidak ada collect yang sedang berjalan", http.StatusConflict)
+		return
+	}
+	if a.collect.CancelRequested {
+		state := a.collect
+		a.collectMu.Unlock()
+		writeJSON(w, state)
+		return
+	}
+	a.collect.CancelRequested = true
+	a.collect.Message = "Pembatalan diminta. Menghentikan collector dan scraper..."
+	a.collect.Phase = "Membatalkan"
+	cmd := a.collectCmd
+	a.collectMu.Unlock()
+
+	if cmd != nil && cmd.Process != nil {
+		interruptProcess(cmd)
+	}
+	writeJSON(w, a.collectStatus())
+}
+
+func interruptProcess(cmd *exec.Cmd) {
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	if err := cmd.Process.Signal(os.Interrupt); err != nil {
+		_ = cmd.Process.Kill()
+	}
+}
+
+func (a *app) finishCollect(message, phase string) {
+	a.collectMu.Lock()
+	startedAt := a.collect.StartedAt
+	startedUnix := a.collect.StartedUnix
+	cancelRequested := a.collect.CancelRequested
+	a.collectCmd = nil
+	a.collect = collectState{
+		Running:         false,
+		Message:         message,
+		StartedAt:       startedAt,
+		StartedUnix:     startedUnix,
+		Phase:           phase,
+		CancelRequested: cancelRequested,
+	}
 	a.collectMu.Unlock()
 }
 
 func (a *app) collectStatus() collectState {
 	a.collectMu.RLock()
-	defer a.collectMu.RUnlock()
-	return a.collect
+	state := a.collect
+	a.collectMu.RUnlock()
+
+	if state.StartedUnix > 0 {
+		state.ElapsedSeconds = time.Now().Unix() - state.StartedUnix
+		if state.ElapsedSeconds < 0 {
+			state.ElapsedSeconds = 0
+		}
+	}
+	state.LogTail = tailLogFile(filepath.Join("data", "collector-last.log"), 14)
+	if state.Running && !state.CancelRequested {
+		state.Phase = phaseFromLog(state.LogTail, state.Phase)
+	}
+	state.CanCancel = state.Running && !state.CancelRequested
+	return state
+}
+
+func phaseFromLog(logTail, fallback string) string {
+	switch {
+	case strings.Contains(logTail, "PHASE database-import"):
+		return "Mengimpor database"
+	case strings.Contains(logTail, "PHASE post-process"):
+		return "Memproses hasil"
+	case strings.Contains(logTail, "PHASE scraping"):
+		return "Scraping Google Maps"
+	case fallback != "":
+		return fallback
+	default:
+		return "Menyiapkan"
+	}
+}
+
+func tailLogFile(path string, maxLines int) string {
+	f, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	st, err := f.Stat()
+	if err != nil {
+		return ""
+	}
+	const maxBytes int64 = 16 << 10
+	start := st.Size() - maxBytes
+	if start < 0 {
+		start = 0
+	}
+	if _, err := f.Seek(start, io.SeekStart); err != nil {
+		return ""
+	}
+	data, err := io.ReadAll(io.LimitReader(f, maxBytes))
+	if err != nil {
+		return ""
+	}
+	text := string(data)
+	if start > 0 {
+		if idx := strings.IndexByte(text, '\n'); idx >= 0 {
+			text = text[idx+1:]
+		}
+	}
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	lines := strings.Split(text, "\n")
+	if maxLines > 0 && len(lines) > maxLines {
+		lines = lines[len(lines)-maxLines:]
+	}
+	return strings.Join(lines, "\n")
 }
 
 func (a *app) handleCollectStatus(w http.ResponseWriter, r *http.Request) {
