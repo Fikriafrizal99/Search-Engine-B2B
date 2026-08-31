@@ -17,6 +17,7 @@ import (
 type contactPageData struct {
 	Lead  prospectstore.ContactLead
 	Stats prospectstore.ExecutionStats
+	Nav   prospectstore.ContactNavigation
 	Mode  string
 	Empty bool
 }
@@ -48,6 +49,11 @@ func registerContactRoutes(mux *http.ServeMux, a *app) {
 }
 
 func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
+	if err := a.store.SyncContactProfileStatus(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	mode := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("mode")))
 	if mode == "" {
 		mode = "all"
@@ -89,7 +95,13 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := contactTmpl.Execute(w, contactPageData{Lead: lead, Stats: stats, Mode: mode}); err != nil {
+	nav, err := a.store.ContactNavigation(r.Context(), lead.Record.Prospect.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := contactTmpl.Execute(w, contactPageData{Lead: lead, Stats: stats, Nav: nav, Mode: mode}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -102,6 +114,10 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "invalid form", http.StatusBadRequest)
+		return
+	}
+	if err := a.store.SyncContactProfileStatus(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
