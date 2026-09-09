@@ -39,6 +39,7 @@ func registerMerchantRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("GET /merchant/{id}", a.handleMerchant)
 	mux.HandleFunc("POST /merchant/{id}", a.handleMerchantUpdate)
 	mux.HandleFunc("GET /merchant/prospect/{id}", a.handleEnsureMerchant)
+	registerAreaRoutes(mux, a)
 }
 
 func (a *app) handleMerchantPipeline(w http.ResponseWriter, r *http.Request) {
