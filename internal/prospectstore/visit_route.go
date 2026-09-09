@@ -20,6 +20,9 @@ func (s *Store) CreateDailyVisitPlan(ctx context.Context, in DailyVisitPlanInput
 	if err := s.ensureMerchantSchema(ctx); err != nil {
 		return VisitPlan{}, err
 	}
+	if err := s.ensureVisitRoadMetricSchema(ctx); err != nil {
+		return VisitPlan{}, err
+	}
 	scope := strings.TrimSpace(in.LocationScope)
 	if scope == "" {
 		return VisitPlan{}, fmt.Errorf("location scope is required")
@@ -77,7 +80,7 @@ func (s *Store) CreateDailyVisitPlan(ctx context.Context, in DailyVisitPlanInput
 	if err := rows.Err(); err != nil {
 		return VisitPlan{}, err
 	}
-	selected := nearestNeighbor(candidates, in.StartLat, in.StartLon, in.TargetCount)
+	selected, durations, routingSource := s.selectVisitRoute(ctx, candidates, in.StartLat, in.StartLon, in.TargetCount)
 	if len(selected) == 0 {
 		return VisitPlan{}, fmt.Errorf("no routable merchant available for %s", scope)
 	}
@@ -97,9 +100,24 @@ func (s *Store) CreateDailyVisitPlan(ctx context.Context, in DailyVisitPlanInput
 	if err != nil {
 		return VisitPlan{}, err
 	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO visit_plan_routing (plan_id,routing_source) VALUES (?,?)`, planID, routingSource); err != nil {
+		return VisitPlan{}, err
+	}
 	for i, item := range selected {
-		if _, err := tx.ExecContext(ctx, `INSERT INTO visit_plan_items (plan_id,prospect_id,sequence,distance_from_previous_km,status,created_at)
-			VALUES (?,?,?,?,?,?)`, planID, item.Prospect.ID, i+1, item.DistanceFromPreviousKM, VisitPlanned, now); err != nil {
+		itemRes, err := tx.ExecContext(ctx, `INSERT INTO visit_plan_items (plan_id,prospect_id,sequence,distance_from_previous_km,status,created_at)
+			VALUES (?,?,?,?,?,?)`, planID, item.Prospect.ID, i+1, item.DistanceFromPreviousKM, VisitPlanned, now)
+		if err != nil {
+			return VisitPlan{}, err
+		}
+		itemID, err := itemRes.LastInsertId()
+		if err != nil {
+			return VisitPlan{}, err
+		}
+		duration := float64(0)
+		if i < len(durations) {
+			duration = durations[i]
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO visit_plan_item_metrics (item_id,duration_seconds) VALUES (?,?)`, itemID, duration); err != nil {
 			return VisitPlan{}, err
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE merchant_visit_state SET visit_status=?,updated_at=? WHERE prospect_id=? AND visit_status IN (?,?)`,
