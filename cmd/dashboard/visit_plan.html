@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rute Kunjungan Bukupay</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,sans-serif;color:#172033;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1180px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}.top h1{margin:0;font-size:24px}.subtle{color:#718096;font-size:12px}.btn{display:inline-flex;align-items:center;border:1px solid #d9e1ec;border-radius:10px;min-height:40px;padding:8px 14px;background:#fff;color:#172033;text-decoration:none}.primary{background:#172033;color:#fff;border-color:#172033}.panel,.card{background:#fff;border:1px solid #e8edf5;border-radius:14px;box-shadow:0 4px 18px rgba(18,38,63,.04)}.panel{padding:16px;margin-bottom:14px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.card{padding:14px}.card b{display:block;font-size:22px;margin-top:4px}.route{display:flex;flex-direction:column;gap:8px}.item{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;padding:12px;border:1px solid #e8edf5;border-radius:12px;background:#fff}.seq{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#172033;color:#fff;font-weight:800}.name{font-weight:800}.meta{font-size:12px;color:#718096;margin-top:3px}.actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.actions a{font-size:12px}.leg{font-size:12px;color:#667085;margin-left:70px}.start{padding:12px;border-radius:12px;background:#fff8e7;margin-bottom:8px;font-size:13px}@media(max-width:750px){.wrap{padding:12px}.top{align-items:flex-start;flex-direction:column}.summary{grid-template-columns:1fr 1fr}.item{grid-template-columns:48px 1fr}.actions{grid-column:2;justify-content:flex-start}.leg{margin-left:60px}}@media(max-width:480px){.summary{grid-template-columns:1fr}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="top"><div><h1>Rute Kunjungan</h1><div class="subtle">Rencana tersimpan · {{.Plan.PlanDate}}</div></div><div><a class="btn" href="/areas">Area Planner</a> <a class="btn" href="/merchants">Pipeline</a></div></div>
+<div class="panel">
+  <div class="summary">
+    <div class="card"><span class="subtle">Tanggal</span><b>{{.Plan.PlanDate}}</b></div>
+    <div class="card"><span class="subtle">Merchant</span><b>{{len .Plan.Items}}</b></div>
+    <div class="card"><span class="subtle">Target</span><b>{{.Plan.TargetCount}}</b></div>
+    <div class="card"><span class="subtle">Jarak lurus total</span><b>{{printf "%.1f" .TotalDistanceKM}} km</b></div>
+  </div>
+  <div style="margin-top:12px"><b>Area</b><div class="subtle">{{.Plan.LocationScope}}</div></div>
+</div>
+<div class="panel">
+  <div class="start"><b>START</b> · {{printf "%.6f" .Plan.StartLat}}, {{printf "%.6f" .Plan.StartLon}}</div>
+  <div class="route">
+  {{range .Plan.Items}}
+    <div class="leg">↓ {{printf "%.2f" .DistanceFromPreviousKM}} km dari titik sebelumnya</div>
+    <div class="item">
+      <div class="seq">{{.Sequence}}</div>
+      <div><div class="name">{{.Prospect.Title}}</div><div class="meta">{{.Prospect.Category}} · {{.Prospect.Address}}</div><div class="meta">Status route: {{.Status}}</div></div>
+      <div class="actions">
+        {{if .Prospect.MapsURL}}<a class="btn" target="_blank" rel="noreferrer" href="{{.Prospect.MapsURL}}">Maps</a>{{end}}
+        <a class="btn primary" href="/contact?id={{.Prospect.ID}}">Visit</a>
+        <a class="btn" href="/merchant/prospect/{{.Prospect.ID}}">Merchant</a>
+        {{if .Prospect.Phone}}<a class="btn" href="tel:{{.Prospect.Phone}}">Call</a><a class="btn" target="_blank" rel="noreferrer" href="https://wa.me/{{wa .Prospect.Phone}}">WA</a>{{end}}
+      </div>
+    </div>
+  {{else}}
+    <div class="subtle">Tidak ada merchant di rute ini.</div>
+  {{end}}
+  </div>
+</div>
+</div></body></html>
