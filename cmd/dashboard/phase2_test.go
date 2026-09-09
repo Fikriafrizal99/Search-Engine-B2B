@@ -24,7 +24,7 @@ func TestPhase2PagesAndActions(t *testing.T) {
 	a := &app{store: s}
 	mux := http.NewServeMux()
 	registerContactRoutes(mux, a)
-	for _, path := range []string{"/sales", "/areas", "/merchants", "/merchants?q=hello&due=1&status=follow_up&location=Test", "/assets/phase2.css", "/assets/area-planner.js"} {
+	for _, path := range []string{"/sales", "/areas", "/merchants", "/merchants?q=hello&due=1&status=follow_up&location=Test", "/assets/phase2.css", "/assets/scrape-mode.css", "/assets/area-planner.js"} {
 		w := httptest.NewRecorder()
 		mux.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
 		if w.Code != 200 {
@@ -37,6 +37,13 @@ func TestPhase2PagesAndActions(t *testing.T) {
 		}
 	}
 	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, httptest.NewRequest("GET", "/areas", nil))
+	for _, want := range []string{"Mode Pencarian", "value=\"auto\"", "value=\"manual\"", "manual-include-defaults", "scrape-query-mode"} {
+		if !strings.Contains(w.Body.String(), want) {
+			t.Fatalf("Area Planner missing scrape mode control %q", want)
+		}
+	}
+	w = httptest.NewRecorder()
 	mux.ServeHTTP(w, httptest.NewRequest("GET", "/api/coverage?location=Empty", nil))
 	var coverage coverageResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &coverage); err != nil || coverage.Exists || coverage.Snapshot.EligibleTomorrow != 0 {
@@ -57,6 +64,22 @@ func TestPhase2PagesAndActions(t *testing.T) {
 	mux.ServeHTTP(w, req)
 	if w.Code != http.StatusConflict || !strings.Contains(w.Body.String(), "collector masih berjalan") {
 		t.Fatalf("scrape guard: %d %s", w.Code, w.Body.String())
+	}
+	manual := url.Values{"location": {"Village, District, City, Province, Indonesia"}, "query_mode": {"custom"}, "keywords": {"warung madura\nagen gas"}, "depth": {"5"}, "concurrency": {"2"}}
+	req = httptest.NewRequest("POST", "/bukupay/collect", strings.NewReader(manual.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != http.StatusConflict || !strings.Contains(w.Body.String(), "collector masih berjalan") {
+		t.Fatalf("manual scrape mode not accepted before concurrency guard: %d %s", w.Code, w.Body.String())
+	}
+	manual.Del("keywords")
+	req = httptest.NewRequest("POST", "/bukupay/collect", strings.NewReader(manual.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "isi minimal satu custom query") {
+		t.Fatalf("empty manual scrape validation: %d %s", w.Code, w.Body.String())
 	}
 }
 
