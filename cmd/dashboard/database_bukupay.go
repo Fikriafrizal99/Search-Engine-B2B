@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
 	"html/template"
 	"net/http"
@@ -8,6 +9,28 @@ import (
 
 type bukupayDatabaseData struct {
 	Dashboard dashboardData
+}
+
+type captureResponseWriter struct {
+	header http.Header
+	status int
+	body   bytes.Buffer
+}
+
+func (w *captureResponseWriter) Header() http.Header {
+	if w.header == nil {
+		w.header = make(http.Header)
+	}
+	return w.header
+}
+
+func (w *captureResponseWriter) WriteHeader(status int) { w.status = status }
+
+func (w *captureResponseWriter) Write(p []byte) (int, error) {
+	if w.status == 0 {
+		w.status = http.StatusOK
+	}
+	return w.body.Write(p)
 }
 
 var bukupayDatabaseTmpl = template.Must(template.New("bukupay-database").Funcs(funcs).Parse(bukupayDatabaseHTML))
@@ -29,6 +52,22 @@ func (a *app) handleBukupayDatabase(w http.ResponseWriter, r *http.Request) {
 	if err := bukupayDatabaseTmpl.Execute(w, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (a *app) handleBukupayCollect(w http.ResponseWriter, r *http.Request) {
+	capture := &captureResponseWriter{}
+	a.handleCollect(capture, r)
+	if capture.status >= 400 {
+		for k, values := range capture.Header() {
+			for _, value := range values {
+				w.Header().Add(k, value)
+			}
+		}
+		w.WriteHeader(capture.status)
+		_, _ = w.Write(capture.body.Bytes())
+		return
+	}
+	http.Redirect(w, r, "/database?collect=started", http.StatusSeeOther)
 }
 
 //go:embed database_bukupay.html
