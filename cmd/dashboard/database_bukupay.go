@@ -5,10 +5,14 @@ import (
 	_ "embed"
 	"html/template"
 	"net/http"
+	"time"
+
+	"github.com/Fikriafrizal99/Search-Engine-B2B/internal/prospectstore"
 )
 
 type bukupayDatabaseData struct {
 	Dashboard       dashboardData
+	Insights        prospectstore.DatabaseInsights
 	PhoneCoverage   float64
 	WebsiteCoverage float64
 }
@@ -50,7 +54,12 @@ func (a *app) handleBukupayDatabase(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	data := bukupayDatabaseData{Dashboard: dashboardData{Records: records, Stats: st, Filter: f, Collect: a.collectStatus()}}
+	insights, err := a.store.DatabaseInsights(r.Context(), time.Now(), jakartaLocation)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	data := bukupayDatabaseData{Dashboard: dashboardData{Records: records, Stats: st, Filter: f, Collect: a.collectStatus()}, Insights: insights}
 	if st.Total > 0 {
 		data.PhoneCoverage = 100 * float64(st.WithPhone) / float64(st.Total)
 		data.WebsiteCoverage = 100 * float64(st.WithWebsite) / float64(st.Total)
