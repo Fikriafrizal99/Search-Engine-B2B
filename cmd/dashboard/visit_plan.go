@@ -41,6 +41,13 @@ func registerVisitPlanRoutes(mux *http.ServeMux, a *app) {
 func (a *app) handleVisitPlanForm(w http.ResponseWriter, r *http.Request) {
 	location := strings.TrimSpace(r.URL.Query().Get("location"))
 	tomorrow := time.Now().In(jakartaLocation).AddDate(0, 0, 1).Format("2006-01-02")
+	if date := r.URL.Query().Get("plan_date"); date != "" {
+		if _, err := time.ParseInLocation("2006-01-02", date, jakartaLocation); err != nil {
+			http.Error(w, "tanggal rencana tidak valid", http.StatusBadRequest)
+			return
+		}
+		tomorrow = date
+	}
 	if err := visitPlanFormTmpl.Execute(w, visitPlanFormData{Location: location, PlanDate: tomorrow, Target: 25}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

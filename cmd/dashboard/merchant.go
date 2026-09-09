@@ -13,10 +13,14 @@ import (
 )
 
 type merchantPipelinePageData struct {
-	Items    []prospectstore.MerchantPipelineItem
-	Stats    prospectstore.BukupayPipelineStats
-	Status   string
-	Location string
+	Items                                []prospectstore.MerchantPipelineItem
+	Stats                                prospectstore.BukupayPipelineStats
+	Status, Location, Search             string
+	Due                                  bool
+	Areas                                []string
+	Stages, Exceptions                   []pipelineStage
+	Count, Page, Pages                   int
+	PreviousURL, NextURL, AllURL, DueURL string
 }
 
 type merchantPageData struct {
@@ -32,7 +36,7 @@ var merchantFuncs = template.FuncMap{
 	"wa":            waNumber,
 }
 
-var merchantsTmpl = template.Must(template.New("merchants").Funcs(merchantFuncs).Parse(merchantsHTML))
+var merchantsTmpl = template.Must(template.Must(template.New("merchants").Funcs(phase2Funcs).Parse(merchantsHTML)).ParseFS(uiAssets, "ui/shared.html"))
 var merchantTmpl = template.Must(template.New("merchant").Funcs(merchantFuncs).Parse(merchantHTML))
 
 func registerMerchantRoutes(mux *http.ServeMux, a *app) {
@@ -49,19 +53,50 @@ func (a *app) handleMerchantPipeline(w http.ResponseWriter, r *http.Request) {
 		status = "all"
 	}
 	location := strings.TrimSpace(r.URL.Query().Get("location"))
-	items, err := a.store.ListBukupayPipeline(r.Context(), status, location, time.Now(), 500)
+	now := time.Now()
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	f := prospectstore.MerchantListFilter{Status: status, Location: location, Search: strings.TrimSpace(r.URL.Query().Get("q")), Due: r.URL.Query().Get("due") == "1", Limit: 25}
+	count, err := a.store.MerchantListCount(r.Context(), f, now)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		renderPhase2Error(w, http.StatusBadRequest, "Merchant Pipeline", err)
 		return
 	}
-	stats, err := a.store.BukupayPipelineStats(r.Context(), time.Now(), location)
+	pages := (count + f.Limit - 1) / f.Limit
+	if pages < 1 {
+		pages = 1
+	}
+	if page > pages {
+		page = pages
+	}
+	f.Offset = (page - 1) * f.Limit
+	items, err := a.store.FilterMerchantPipeline(r.Context(), f, now)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		renderPhase2Error(w, http.StatusInternalServerError, "Merchant Pipeline", err)
 		return
 	}
-	if err := merchantsTmpl.Execute(w, merchantPipelinePageData{Items: items, Stats: stats, Status: status, Location: location}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	stats, err := a.store.BukupayPipelineStats(r.Context(), now, location)
+	if err != nil {
+		renderPhase2Error(w, http.StatusInternalServerError, "Merchant Pipeline", err)
+		return
 	}
+	areas, err := a.store.MerchantAreas(r.Context())
+	if err != nil {
+		renderPhase2Error(w, http.StatusInternalServerError, "Merchant Pipeline", err)
+		return
+	}
+	data := merchantPipelinePageData{Items: items, Stats: stats, Status: status, Location: location, Search: f.Search, Due: f.Due, Areas: areas, Count: count, Page: page, Pages: pages}
+	data.Stages, data.Exceptions = merchantStages(stats, f)
+	data.PreviousURL = merchantFilterURL(f, page-1)
+	data.NextURL = merchantFilterURL(f, page+1)
+	f.Status = "all"
+	f.Due = false
+	data.AllURL = merchantFilterURL(f, 1)
+	f.Due = true
+	data.DueURL = merchantFilterURL(f, 1)
+	renderPhase2(w, merchantsTmpl, data)
 }
 
 func (a *app) handleEnsureMerchant(w http.ResponseWriter, r *http.Request) {

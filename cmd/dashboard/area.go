@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Fikriafrizal99/Search-Engine-B2B/internal/prospectstore"
 )
@@ -12,9 +13,10 @@ import (
 type coverageResponse struct {
 	Exists   bool                           `json:"exists"`
 	Progress prospectstore.CoverageProgress `json:"progress"`
+	Snapshot prospectstore.AreaSnapshot     `json:"snapshot"`
 }
 
-var areaTmpl = template.Must(template.New("area").Parse(areaHTML))
+var areaTmpl = template.Must(template.Must(template.New("area").Funcs(phase2Funcs).Parse(areaHTML)).ParseFS(uiAssets, "ui/shared.html"))
 
 func registerAreaRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("GET /areas", a.handleAreaPlanner)
@@ -24,9 +26,15 @@ func registerAreaRoutes(mux *http.ServeMux, a *app) {
 }
 
 func (a *app) handleAreaPlanner(w http.ResponseWriter, r *http.Request) {
-	if err := areaTmpl.Execute(w, nil); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	areas, err := a.store.StoredAreas(r.Context())
+	if err != nil {
+		renderPhase2Error(w, http.StatusInternalServerError, "Area Planner", err)
+		return
 	}
+	renderPhase2(w, areaTmpl, struct {
+		Areas        []prospectstore.StoredArea
+		InitialScope string
+	}{areas, strings.TrimSpace(r.URL.Query().Get("location"))})
 }
 
 func (a *app) handleCoverageSnapshot(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +44,13 @@ func (a *app) handleCoverageSnapshot(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, coverageResponse{Exists: exists, Progress: progress})
+	snapshot, err := a.store.AreaSnapshot(r.Context(), scope, time.Now().In(jakartaLocation).AddDate(0, 0, 1))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, coverageResponse{Exists: exists, Progress: progress, Snapshot: snapshot})
 }
 
 //go:embed area.html

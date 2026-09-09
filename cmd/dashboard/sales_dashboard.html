@@ -1,21 +1,105 @@
 <!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bukupay Sales Dashboard</title><style>
-:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#152033;background:#f3f6fb;--navy:#122238;--blue:#2563eb;--line:#e4eaf2;--muted:#718096;--green:#168553;--amber:#b56a00;--purple:#6d4adf;--red:#d9435f}*{box-sizing:border-box}body{margin:0;background:#f3f6fb}.bar{background:var(--navy);color:#fff}.barin{max-width:1360px;margin:auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:20px}.logo{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:#1687ff;font-size:22px}.nav{display:flex;gap:5px;flex-wrap:wrap}.nav a{color:#cbd6e4;text-decoration:none;padding:9px 11px;border-radius:8px;font-size:13px}.nav a:hover,.nav a.active{background:#243850;color:#fff}.wrap{max-width:1360px;margin:auto;padding:20px}.herohead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:16px}.herohead h1{margin:0;font-size:29px}.subtle{color:var(--muted);font-size:12px}.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #d8e0eb;background:#fff;border-radius:999px;padding:8px 11px;font-size:12px}.grid{display:grid;gap:12px}.stats{grid-template-columns:repeat(5,1fr);margin-bottom:14px}.kpi,.panel,.route-card,.pipe-card,.quick-card{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:0 4px 18px rgba(18,38,63,.035)}.kpi{padding:15px;position:relative;overflow:hidden}.kpi:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:#cfd8e5}.kpi.blue:before{background:var(--blue)}.kpi.amber:before{background:#f0a126}.kpi.green:before{background:#2aaa6e}.kpi.purple:before{background:#8a67e8}.kpi.red:before{background:#e65d76}.kpi b{display:block;font-size:28px;margin-top:5px}.hero{grid-template-columns:1.55fr .85fr}.panel{padding:17px;margin-bottom:14px}.sectionhead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}.section-title{font-weight:850;font-size:16px}.route-box{display:grid;grid-template-columns:1fr 1fr;gap:10px}.route-card{padding:15px}.route-card strong{display:block;font-size:20px;margin:4px 0 2px}.route-meta{display:flex;justify-content:space-between;gap:8px;margin-top:8px}.actions{margin-top:12px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 13px;border:1px solid #d7dfeb;border-radius:10px;background:#fff;color:#172033;text-decoration:none;font-size:13px}.primary{background:var(--navy);color:#fff;border-color:var(--navy)}.bluebtn{background:var(--blue);color:#fff;border-color:var(--blue)}.note{margin-top:12px;padding:11px 12px;border-radius:10px;background:#fff8e7;font-size:12px;line-height:1.45;color:#725419}.coverage{grid-template-columns:repeat(3,1fr)}.coverage .kpi b{font-size:22px}.pipeline-grid{grid-template-columns:repeat(10,1fr);align-items:stretch}.pipeline a{text-decoration:none;color:inherit}.pipe-card{padding:12px 7px;text-align:center;height:100%;position:relative;min-height:96px}.pipe-card:after{content:"→";position:absolute;right:-10px;top:36px;color:#9aa7b8;font-weight:900}.pipeline a:last-child .pipe-card:after{display:none}.pipe-card b{display:block;font-size:22px;margin:5px 0}.pipe-card:hover{border-color:#b9c8dc;transform:translateY(-1px)}.pipe-label{font-size:10px;font-weight:850}.quickgrid{grid-template-columns:repeat(4,1fr)}.quick-card{padding:14px;text-decoration:none;color:inherit}.quick-card b{display:block;margin-bottom:4px}.quick-card:hover{border-color:#b9c8dc}.footnote{margin-top:2px;color:#8a96a8;font-size:11px}@media(max-width:1200px){.pipeline-grid{grid-template-columns:repeat(5,1fr)}.pipeline a:nth-child(5) .pipe-card:after{display:none}}@media(max-width:1000px){.stats{grid-template-columns:repeat(3,1fr)}.hero{grid-template-columns:1fr}.quickgrid{grid-template-columns:1fr 1fr}}@media(max-width:700px){.barin,.herohead{align-items:flex-start;flex-direction:column}.nav{width:100%}.wrap{padding:14px}.stats,.coverage,.route-box,.quickgrid,.pipeline-grid{grid-template-columns:1fr 1fr}.pipe-card:after{display:none}.nav a{flex:1;text-align:center}.herohead h1{font-size:25px}}@media(max-width:480px){.stats,.coverage,.route-box,.quickgrid,.pipeline-grid{grid-template-columns:1fr}.barin{padding:10px 12px}.wrap{padding:12px}.nav a{font-size:12px;padding:8px 7px}}
-</style></head><body>
-<header class="bar"><div class="barin"><div class="brand"><span class="logo">B</span><span>Bukupay</span></div><nav class="nav"><a class="active" href="/sales">Dashboard</a><a href="/areas">Area Planner</a><a href="/merchants">Merchant</a><a href="/contact?mode=all">Visit Session</a><a href="/database">Database & Scraper</a></nav></div></header>
-<main class="wrap"><div class="herohead"><div><div class="subtle">SALES FIELD COMMAND CENTER</div><h1>Bukupay Sales Dashboard</h1><div class="subtle">{{.Today}} · Jakarta Selatan & area irisan</div></div><div class="pill">● Field sales workspace</div></div>
-<div class="grid stats"><div class="kpi blue"><span class="subtle">Visit Hari Ini</span><b>{{.Summary.VisitedToday}}</b><span class="footnote">target harian 25 merchant</span></div><div class="kpi amber"><span class="subtle">Revisit Due</span><b>{{.Summary.RevisitDue}}</b><span class="footnote">perlu ditindaklanjuti</span></div><div class="kpi green"><span class="subtle">Interested</span><b>{{.Pipeline.Interested}}</b><span class="footnote">merchant tertarik</span></div><div class="kpi purple"><span class="subtle">Follow Up</span><b>{{.Pipeline.FollowUp}}</b><span class="footnote">dalam proses</span></div><div class="kpi red"><span class="subtle">Active</span><b>{{.Pipeline.Active}}</b><span class="footnote">merchant aktif</span></div></div>
-<div class="grid hero"><section class="panel"><div class="sectionhead"><div><div class="section-title">Rencana Kunjungan</div><div class="subtle">Kelola eksekusi lapangan hari ini dan besok.</div></div><a class="btn" href="/areas">Pilih Area</a></div><div class="route-box"><div class="route-card"><span class="subtle">HARI INI</span><strong>{{.Summary.TodayPlanCount}} merchant</strong><div class="route-meta"><span class="subtle">Progress visit</span><span class="subtle">{{.Summary.VisitedToday}} / {{.Summary.TodayPlanCount}}</span></div>{{if gt .Summary.TodayPlanID 0}}<div class="actions"><a class="btn bluebtn" href="/visit-plan/{{.Summary.TodayPlanID}}">Buka Rute Hari Ini →</a></div>{{else}}<div class="footnote" style="margin-top:12px">Belum ada rute tersimpan hari ini.</div>{{end}}</div><div class="route-card"><span class="subtle">BESOK</span><strong>{{.Summary.TomorrowPlanCount}} merchant</strong><div class="route-meta"><span class="subtle">Rencana tersimpan</span><span class="subtle">target 25</span></div>{{if gt .Summary.TomorrowPlanID 0}}<div class="actions"><a class="btn primary" href="/visit-plan/{{.Summary.TomorrowPlanID}}">Buka Rute Besok →</a></div>{{else}}<div class="actions"><a class="btn primary" href="/areas">Buat Rute Besok →</a></div>{{end}}</div></div><div class="note">Pilih kelurahan → scrape satu kali → buat rute 25 merchant → visit → update hasil → lanjut sampai coverage area selesai.</div></section><section class="panel"><div class="sectionhead"><div><div class="section-title">Coverage Area</div><div class="subtle">Status wilayah kerja yang sudah masuk sistem.</div></div></div><div class="grid coverage"><div class="kpi"><span class="subtle">Tersimpan</span><b>{{.Summary.CoverageAreas}}</b></div><div class="kpi blue"><span class="subtle">In Progress</span><b>{{.Summary.CoverageInProgress}}</b></div><div class="kpi green"><span class="subtle">Completed</span><b>{{.Summary.CoverageCompleted}}</b></div></div><div class="actions"><a class="btn primary" href="/areas">Kelola Area Kerja</a></div></section></div>
-<section class="panel pipeline"><div class="sectionhead"><div><div class="section-title">Sales Pipeline Bukupay</div><div class="subtle">Tahap lengkap dari merchant belum dikunjungi sampai Soundbox aktif.</div></div><a class="btn" href="/merchants">Lihat Semua</a></div><div class="grid pipeline-grid">
-<a href="/merchants?status=to_visit"><div class="pipe-card"><span class="pipe-label">TO VISIT</span><b>{{.Pipeline.ToVisit}}</b><span class="subtle">belum dikunjungi</span></div></a>
-<a href="/merchants?status=visited"><div class="pipe-card"><span class="pipe-label">VISITED</span><b>{{.Pipeline.Visited}}</b><span class="subtle">sudah visit</span></div></a>
-<a href="/merchants?status=presented"><div class="pipe-card"><span class="pipe-label">PRESENTED</span><b>{{.Pipeline.Presented}}</b><span class="subtle">sudah presentasi</span></div></a>
-<a href="/merchants?status=interested"><div class="pipe-card"><span class="pipe-label" style="color:#d9435f">INTERESTED</span><b>{{.Pipeline.Interested}}</b><span class="subtle">merchant tertarik</span></div></a>
-<a href="/merchants?status=follow_up"><div class="pipe-card"><span class="pipe-label" style="color:#b56a00">FOLLOW UP</span><b>{{.Pipeline.FollowUp}}</b><span class="subtle">tindak lanjut</span></div></a>
-<a href="/merchants?status=registration"><div class="pipe-card"><span class="pipe-label">REGISTRATION</span><b>{{.Pipeline.Registration}}</b><span class="subtle">proses daftar</span></div></a>
-<a href="/merchants?status=registered"><div class="pipe-card"><span class="pipe-label" style="color:#2563eb">REGISTERED</span><b>{{.Pipeline.Registered}}</b><span class="subtle">sudah daftar</span></div></a>
-<a href="/merchants?status=installation"><div class="pipe-card"><span class="pipe-label">INSTALLATION</span><b>{{.Pipeline.Installation}}</b><span class="subtle">proses pasang</span></div></a>
-<a href="/merchants?status=installed"><div class="pipe-card"><span class="pipe-label" style="color:#6d4adf">INSTALLED</span><b>{{.Pipeline.Installed}}</b><span class="subtle">Soundbox terpasang</span></div></a>
-<a href="/merchants?status=active"><div class="pipe-card"><span class="pipe-label" style="color:#168553">ACTIVE</span><b>{{.Pipeline.Active}}</b><span class="subtle">merchant aktif</span></div></a>
-</div></section>
-<section class="panel"><div class="sectionhead"><div><div class="section-title">Akses Cepat</div><div class="subtle">Semua menu operasional Bukupay.</div></div></div><div class="grid quickgrid"><a class="quick-card" href="/areas"><b>📍 Area Planner</b><span class="subtle">Pilih area, scrape, dan buat rute.</span></a><a class="quick-card" href="/contact?mode=follow_up"><b>⏱ Follow Up Due</b><span class="subtle">Merchant yang perlu ditindaklanjuti.</span></a><a class="quick-card" href="/merchants"><b>🏪 Semua Merchant</b><span class="subtle">Kelola pipeline merchant Bukupay.</span></a><a class="quick-card" href="/database"><b>🗄 Database & Scraper</b><span class="subtle">Menu teknis discovery merchant.</span></a></div></section></main></body></html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Bukupay Sales Dashboard</title>
+  <link rel="stylesheet" href="/assets/bukupay-ui-v2.css">
+</head>
+<body class="ui-body">
+{{template "ui-symbols"}}
+{{template "ui-nav" "dashboard"}}
+<main class="ui-container sales-dashboard" id="main">
+  <div class="sales-heading">
+    <div><p class="ui-eyebrow">SELAMAT DATANG <span aria-hidden="true">👋</span></p><h1>Bukupay Sales Dashboard</h1><p class="ui-subtitle">Pantau progres akuisisi merchant di seluruh area kerja tersimpan.</p></div>
+    <div class="sales-heading-meta"><span class="ui-chip">{{template "ui-icon" "calendar"}}<time datetime="{{.DateISO}}">{{.Today}}</time></span><a class="ui-chip blue" href="/areas">{{template "ui-icon" "pin"}}{{.Summary.CoverageAreas}} area kerja tersimpan</a></div>
+  </div>
+
+  <div class="sales-kpis">
+    {{range .KPIs}}<a class="ui-card sales-kpi" href="{{.URL}}"><span class="ui-iconbox {{.Tone}}">{{template "ui-icon" .Icon}}</span><div><h2>{{.Label}}</h2><strong>{{.Count}}</strong><p class="ui-muted">{{.Hint}}</p></div></a>{{end}}
+  </div>
+
+  <div class="sales-overview">
+    {{range .Routes}}
+    <section class="ui-card sales-route {{.Tone}}">
+      <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="sales-route-icon">{{template "ui-icon" .Icon}}</span><div><h2>{{.Title}}</h2><p class="ui-muted">{{.Subtitle}}</p></div></div>{{if .ID}}<a class="ui-textlink" href="{{.URL}}">Lihat Detail {{template "ui-icon" "arrow"}}</a>{{end}}</div>
+      <div class="sales-route-banner"><span class="ui-iconbox ui-round {{.Tone}}">{{template "ui-icon" "pin"}}</span><div><strong>{{.Count}} merchant</strong><p class="ui-muted">{{if .ID}}{{if gt .SavedPlans 1}}Rute terbaru · {{.SavedPlans}} rute tersimpan{{else}}Rute tersimpan{{end}}{{else}}Belum ada rute tersimpan{{end}}</p></div></div>
+      <div class="sales-route-metrics">
+        <div>{{template "ui-icon" "route"}}<div><strong>{{if .ID}}{{printf "%.1f" .DistanceKM}} km{{else}}—{{end}}</strong><span class="ui-muted">{{if eq .RoutingSource "osrm"}}jarak jalan{{else if .ID}}jarak garis lurus{{else}}jarak belum tersedia{{end}}</span></div></div>
+        <div>{{template "ui-icon" "clock"}}<div><strong>{{if .DurationAvailable}}{{durationLabel .DurationSeconds}}{{else}}—{{end}}</strong><span class="ui-muted">{{if .DurationAvailable}}estimasi berkendara{{else}}durasi belum tersedia{{end}}</span></div></div>
+        <div>{{template "ui-icon" "pin"}}<div><strong title="{{.Area}}">{{if .Area}}{{shortArea .Area}}{{else}}Belum dipilih{{end}}</strong><span class="ui-muted">area rute</span></div></div>
+      </div>
+      <a class="ui-button {{if eq .Tone "blue"}}ui-primary{{else}}ui-outline{{end}} sales-route-action" href="{{.URL}}">{{if eq .Tone "blue"}}{{template "ui-icon" "send"}}{{else}}{{template "ui-icon" "calendar"}}{{end}}{{.Action}}</a>
+    </section>
+    {{end}}
+    <section class="ui-card sales-coverage">
+      <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="blue">{{template "ui-icon" "target"}}</span><div><h2>Coverage Area</h2><p class="ui-muted">Status wilayah kerja yang sudah masuk sistem.</p></div></div><a class="ui-textlink" href="/areas">Kelola Area {{template "ui-icon" "arrow"}}</a></div>
+      <div class="sales-coverage-total"><strong>{{printf "%.0f" .Summary.CoveragePercent}}%</strong><span class="ui-muted">{{.Summary.CoverageCompleted}} dari {{.Summary.CoverageAreas}} area selesai</span></div>
+      <progress class="ui-progress" max="100" value="{{.Summary.CoveragePercent}}" aria-label="Persentase area selesai">{{printf "%.0f" .Summary.CoveragePercent}}%</progress>
+      <div class="sales-coverage-stats">
+        <div class="green">{{template "ui-icon" "check"}}<div><strong>{{.Summary.CoverageCompleted}}</strong><span>Completed</span><small>area</small></div></div>
+        <div class="blue">{{template "ui-icon" "clock"}}<div><strong>{{.Summary.CoverageInProgress}}</strong><span>In Progress</span><small>area</small></div></div>
+        <div class="slate">{{template "ui-icon" "more"}}<div><strong>{{.Summary.CoverageStored}}</strong><span>Tersimpan</span><small>belum dimulai</small></div></div>
+      </div>
+      <a class="ui-button ui-outline" href="/areas">{{template "ui-icon" "map"}}Lihat Detail Coverage Area</a>
+    </section>
+  </div>
+
+  <section class="ui-card sales-pipeline" id="pipeline">
+    <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="blue">{{template "ui-icon" "chart"}}</span><div><h2>Sales Pipeline Bukupay</h2><p class="ui-muted">Tahap lengkap dari merchant baru hingga aktif.</p></div></div>
+      <div class="sales-pipeline-controls"><form action="/sales#pipeline" method="get"><label class="sr-only" for="pipeline-area">Filter area pipeline</label><select id="pipeline-area" name="location"><option value="">Semua Area</option>{{range .Summary.Areas}}<option value="{{.}}" {{if eq . $.Location}}selected{{end}}>{{.}}</option>{{end}}</select><button class="ui-button ui-compact" type="submit">Terapkan</button></form><span class="ui-muted sales-snapshot">Status saat ini</span><a class="ui-textlink" href="/merchants?location={{.Location}}">Lihat Semua {{template "ui-icon" "arrow"}}</a></div>
+    </div>
+    <div class="sales-pipeline-grid">{{range .Stages}}<a class="sales-stage {{.Tone}}" href="{{.URL}}"><h3>{{.Label}}</h3><strong>{{.Count}}</strong><span>{{template "ui-icon" .Icon}}{{.Hint}}</span></a>{{end}}</div>
+  </section>
+
+  <div class="sales-bottom">
+    <section class="ui-card sales-priority" id="priorities">
+      <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="rose">{{template "ui-icon" "target"}}</span><div><h2>Prioritas Hari Ini</h2><p class="ui-muted">Merchant berikutnya yang perlu dikunjungi.</p></div></div><a class="ui-textlink" href="/contact?mode=follow_up">Follow Up {{template "ui-icon" "arrow"}}</a></div>
+      {{if .Summary.Priorities}}
+        {{template "sales-priority-card" (index .Summary.Priorities 0)}}
+        {{if gt (len .Summary.Priorities) 1}}<details class="sales-more"><summary>Lihat daftar prioritas · {{len .Summary.Priorities}} merchant</summary><div class="sales-more-list">{{range $i,$p := .Summary.Priorities}}{{if $i}}{{template "sales-priority-card" $p}}{{end}}{{end}}</div></details>{{end}}
+      {{else}}
+        <div class="ui-empty"><span class="ui-iconbox rose ui-round">{{template "ui-icon" "target"}}</span><strong>Belum ada prioritas hari ini</strong><p>Buat rute atau jadwalkan tindak lanjut merchant untuk mulai kunjungan.</p><a class="ui-textlink" href="/areas">Buka Area Planner {{template "ui-icon" "arrow"}}</a></div>
+      {{end}}
+    </section>
+
+    <section class="ui-card sales-activity" id="activity">
+      <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="blue">{{template "ui-icon" "clock"}}</span><div><h2>Aktivitas Terbaru</h2><p class="ui-muted">Riwayat kunjungan dan progres merchant.</p></div></div></div>
+      {{if .Summary.Activities}}
+        <ul class="sales-activity-list">{{range $i,$a := .Summary.Activities}}{{if lt $i 4}}{{template "sales-activity-row" $a}}{{end}}{{end}}</ul>
+        {{if gt (len .Summary.Activities) 4}}<details class="sales-more"><summary>Lihat {{len .Summary.Activities}} aktivitas terbaru</summary><ul class="sales-activity-list">{{range $i,$a := .Summary.Activities}}{{if ge $i 4}}{{template "sales-activity-row" $a}}{{end}}{{end}}</ul></details>{{end}}
+      {{else}}
+        <div class="ui-empty"><span class="ui-iconbox blue ui-round">{{template "ui-icon" "clock"}}</span><strong>Belum ada aktivitas tercatat</strong><p>Hasil kunjungan dan perubahan pipeline akan muncul di sini.</p><a class="ui-textlink" href="/contact?mode=all">Mulai Visit Session {{template "ui-icon" "arrow"}}</a></div>
+      {{end}}
+    </section>
+
+    <section class="ui-card sales-quick">
+      <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="purple">{{template "ui-icon" "bolt"}}</span><div><h2>Akses Cepat</h2><p class="ui-muted">Menu utama untuk mendukung aktivitas field sales.</p></div></div></div>
+      <div class="sales-quick-grid">
+        <a href="/areas"><span class="ui-iconbox blue ui-round">{{template "ui-icon" "map"}}</span><div><h3>Area Planner</h3><p class="ui-muted">Pilih area, scrape, dan buat rute.</p></div></a>
+        <a href="/merchants"><span class="ui-iconbox blue ui-round">{{template "ui-icon" "users"}}</span><div><h3>Semua Merchant</h3><p class="ui-muted">Lihat dan kelola data merchant.</p></div></a>
+        <a href="/contact?mode=all"><span class="ui-iconbox blue ui-round">{{template "ui-icon" "calendar"}}</span><div><h3>Visit Session</h3><p class="ui-muted">Mulai sesi kunjungan dan catat hasil.</p></div></a>
+        <a href="/database"><span class="ui-iconbox blue ui-round">{{template "ui-icon" "database"}}</span><div><h3>Database &amp; Scraper</h3><p class="ui-muted">Kelola data master merchant.</p></div></a>
+      </div>
+    </section>
+  </div>
+</main>
+</body>
+</html>
+
+{{define "sales-priority-card"}}
+<article class="sales-priority-card">
+  <div class="sales-priority-name"><span class="ui-iconbox slate">{{template "ui-icon" "store"}}</span><div><h3><a href="/contact?id={{.Prospect.ID}}">{{.Prospect.Title}}</a></h3><p class="ui-muted">{{if .Prospect.Category}}{{.Prospect.Category}}{{else}}Kategori belum tersedia{{end}}</p></div><span class="ui-badge {{statusTone .Status}}">{{merchantLabel .Status}}</span></div>
+  <p class="sales-address">{{template "ui-icon" "pin"}}{{if .Prospect.Address}}{{.Prospect.Address}}{{else}}Alamat belum tersedia{{end}}</p>
+  <p class="sales-priority-reason">{{template "ui-icon" "clock"}}{{.Reason}}{{if .DueAt}} <span class="ui-muted">· {{contactTime .DueAt}}</span>{{end}}</p>
+  <div class="sales-priority-actions">
+    {{if .Prospect.MapsURL}}<a class="ui-button ui-compact" target="_blank" rel="noopener noreferrer" href="{{.Prospect.MapsURL}}">{{template "ui-icon" "map"}}Buka Maps</a>{{end}}
+    <a class="ui-button ui-primary ui-compact" href="/contact?id={{.Prospect.ID}}">{{template "ui-icon" "play"}}Mulai Visit</a>
+    {{if wa .Prospect.Phone}}<a class="ui-button ui-success ui-compact" href="tel:+{{wa .Prospect.Phone}}">{{template "ui-icon" "phone"}}Telepon</a><a class="ui-button ui-success ui-compact" target="_blank" rel="noopener noreferrer" href="https://wa.me/{{wa .Prospect.Phone}}">{{template "ui-icon" "chat"}}WhatsApp</a>{{end}}
+  </div>
+</article>
+{{end}}
+{{define "sales-activity-row"}}
+<li><span class="ui-iconbox ui-round {{statusTone .Status}}">{{template "ui-icon" (statusIcon .Status)}}</span><div><a class="sales-activity-title" href="/contact?id={{.ProspectID}}">{{.Title}}</a><p class="ui-muted">{{activityKind .Kind}} · <time datetime="{{.At}}">{{contactTime .At}}</time></p></div><span class="ui-badge {{statusTone .Status}}">{{if eq .Kind "pipeline"}}{{merchantLabel .Status}}{{else}}{{resultLabel .Status}}{{end}}</span></li>
+{{end}}
