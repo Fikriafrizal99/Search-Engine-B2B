@@ -13,9 +13,10 @@ import (
 )
 
 type merchantPipelinePageData struct {
-	Items  []prospectstore.MerchantPipelineItem
-	Stats  prospectstore.MerchantPipelineStats
-	Status string
+	Items    []prospectstore.MerchantPipelineItem
+	Stats    prospectstore.BukupayPipelineStats
+	Status   string
+	Location string
 }
 
 type merchantPageData struct {
@@ -47,17 +48,18 @@ func (a *app) handleMerchantPipeline(w http.ResponseWriter, r *http.Request) {
 	if status == "" {
 		status = "all"
 	}
-	items, err := a.store.ListMerchantPipeline(r.Context(), status, time.Now(), 500)
+	location := strings.TrimSpace(r.URL.Query().Get("location"))
+	items, err := a.store.ListBukupayPipeline(r.Context(), status, location, time.Now(), 500)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	stats, err := a.store.MerchantPipelineStats(r.Context(), time.Now())
+	stats, err := a.store.BukupayPipelineStats(r.Context(), time.Now(), location)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := merchantsTmpl.Execute(w, merchantPipelinePageData{Items: items, Stats: stats, Status: status}); err != nil {
+	if err := merchantsTmpl.Execute(w, merchantPipelinePageData{Items: items, Stats: stats, Status: status, Location: location}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
