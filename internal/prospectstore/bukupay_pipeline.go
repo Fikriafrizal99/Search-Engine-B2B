@@ -8,22 +8,22 @@ import (
 )
 
 type BukupayPipelineStats struct {
-	ToVisit          int
-	Visited          int
-	Presented        int
-	Interested       int
-	FollowUp         int
-	Registration     int
-	Registered       int
-	Installation     int
-	Installed        int
-	Active           int
-	OwnerNotFound    int
-	NotInterested    int
-	AlreadySoundbox  int
-	Closed           int
-	InvalidLead      int
-	ActionDue        int
+	ToVisit         int
+	Visited         int
+	Presented       int
+	Interested      int
+	FollowUp        int
+	Registration    int
+	Registered      int
+	Installation    int
+	Installed       int
+	Active          int
+	OwnerNotFound   int
+	NotInterested   int
+	AlreadySoundbox int
+	Closed          int
+	InvalidLead     int
+	ActionDue       int
 }
 
 func (s *Store) BukupayPipelineStats(ctx context.Context, now time.Time, location string) (BukupayPipelineStats, error) {
@@ -34,12 +34,13 @@ func (s *Store) BukupayPipelineStats(ctx context.Context, now time.Time, locatio
 		now = time.Now()
 	}
 	where := ""
-	args := make([]any, 0, 2)
+	// The ActionDue placeholder appears in SELECT before the optional location
+	// placeholder in WHERE, so bind time first and location second.
+	args := []any{now.UTC().Format(time.RFC3339)}
 	if location = strings.TrimSpace(location); location != "" {
 		where = ` WHERE LOWER(p.location_scope) LIKE ?`
 		args = append(args, "%"+strings.ToLower(location)+"%")
 	}
-	args = append(args, now.UTC().Format(time.RFC3339))
 	var st BukupayPipelineStats
 	err := s.db.QueryRowContext(ctx, `SELECT
 		COALESCE(SUM(CASE WHEN ms.status='to_visit' THEN 1 ELSE 0 END),0),
