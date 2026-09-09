@@ -2,33 +2,86 @@
 
 Field-sales prospecting dan merchant acquisition workspace untuk membantu penjualan **Soundbox QRIS Bukupay** ke warung, toko FMCG, F&B, dan merchant lokal lainnya.
 
-Branch pengembangan: `feat/bukupay-sales`.
+Baseline Bukupay: `main-bukupay`.
+
+> `main-bukupay` diperlakukan sebagai produk/deployment terpisah dari `main` lama. Jangan deploy Bukupay dengan melakukan `git switch main-bukupay` di folder runtime B2B lama karena folder `data/` dapat ikut terbaca oleh aplikasi yang berbeda.
 
 ## Tujuan
 
 Aplikasi membantu alur kerja sales dari discovery sampai merchant aktif:
 
 ```text
-Google Maps -> Prospect -> Visit Session -> Follow Up -> Registration -> Installation -> Active
+Google Maps -> Master Merchant -> Area Coverage -> Daily Route -> Visit -> Follow Up -> Registration -> Installation -> Active
 ```
 
 ## Fitur utama
 
 - Google Maps merchant discovery melalui `gosom/google-maps-scraper`
-- Scope Jawa + Sumatra
+- Jakarta Selatan sebagai area kerja utama + area irisan
 - Filter lokasi berjenjang: Provinsi -> Kabupaten/Kota -> Kecamatan -> Desa/Kelurahan
-- Custom query hingga 100 keyword per collect
-- Preset `bukupay-merchants` untuk warung, FMCG, F&B, dan usaha lokal
 - Merchant tanpa nomor telepon tetap disimpan untuk canvassing lapangan
-- SQLite prospect database
+- SQLite master merchant database
+- Area/Coverage Planner
+- Daily Visit Plan default 25 merchant
+- OSRM road-distance routing dengan fallback Haversine
 - Visit / Prospecting Session
 - Google Maps, Call, dan WhatsApp shortcut
-- Activity history dan follow-up scheduling
+- Activity history dan revisit scheduling
 - Merchant Pipeline
 - Data QRIS dan Soundbox
 - Registrasi, instalasi, dan aktivasi tracking
 - CSV/XLSX export
 - Docker runtime dan GitHub Actions CI
+
+## Runtime terisolasi
+
+Deployment Bukupay menggunakan identitas sendiri:
+
+```text
+Compose project : bukupay-sales
+Container       : bukupay-sales
+Image           : bukupay-sales:local
+App port        : 8082
+Database        : ./data/prospects.db
+OSRM container  : bukupay-osrm
+OSRM port       : 5000
+```
+
+Rekomendasi struktur server:
+
+```text
+~/Search-Engine-B2B/   # runtime B2B lama, data lama tetap di sini
+~/Bukupay-Sales/       # runtime khusus Bukupay
+```
+
+Clone Bukupay sebagai folder baru:
+
+```bash
+cd ~
+git clone -b main-bukupay https://github.com/Fikriafrizal99/Search-Engine-B2B.git Bukupay-Sales
+cd Bukupay-Sales
+```
+
+Siapkan OSRM sekali:
+
+```bash
+chmod +x scripts/setup-osrm-java.sh
+./scripts/setup-osrm-java.sh
+```
+
+Jalankan Bukupay:
+
+```bash
+docker compose --profile routing up -d --build
+```
+
+Buka:
+
+```text
+http://SERVER:8082/sales
+```
+
+B2B lama dapat tetap menggunakan port `8081` dari folder/runtime lamanya.
 
 ## Merchant pipeline
 
@@ -87,35 +140,9 @@ Data hasil kunjungan/komunikasi:
 
 Traffic, transaksi, QRIS, Soundbox, dan ketertarikan merchant dicatat dari observasi atau komunikasi nyata. Aplikasi tidak menebaknya dari Google Maps.
 
-## Default prospect keywords
-
-Preset `config/presets/bukupay-merchants.json` mencakup antara lain:
-
-```text
-warung
-warung sembako
-toko kelontong
-toko sembako
-grosir sembako
-minimarket
-rumah makan
-warteg
-restoran
-cafe
-coffee shop
-bakery
-apotek
-laundry
-barbershop
-bengkel motor
-counter pulsa
-```
-
-Custom query tetap dapat digunakan dari dashboard.
-
 ## Build
 
-Requirement:
+Requirement lokal:
 
 - Go 1.22+
 - executable `google_maps_scraper`
@@ -126,35 +153,15 @@ go test ./...
 go build ./cmd/collector ./cmd/dashboard
 ```
 
-Jalankan dashboard:
-
-```bash
-./bin/b2b-dashboard \
-  -engine /path/to/google_maps_scraper \
-  -collector ./bin/search-engine-b2b
-```
-
-Buka:
+## Halaman utama
 
 ```text
-http://localhost:8080
+/sales        Bukupay Sales Dashboard
+/areas        Area Planner
+/visit-plan/* Daily Route
+/contact      Visit / Prospecting Session
+/merchants    Merchant Pipeline
+/             Database / scraper legacy UI
 ```
 
-Halaman utama sales:
-
-```text
-/contact     Visit / Prospecting Session
-/merchants   Merchant Pipeline
-```
-
-## Collector langsung
-
-```bash
-./bin/search-engine-b2b \
-  -location "Cilaku, Kabupaten Cianjur, Jawa Barat, Indonesia" \
-  -keywords "warung; warung sembako; rumah makan; cafe" \
-  -include-defaults=true \
-  -- -c 2 -depth 5
-```
-
-Data hasil discovery tetap disimpan di `data/prospects.db` sehingga engine pencarian dan sales workflow dapat dikembangkan secara terpisah.
+Data Bukupay disimpan di `data/prospects.db` pada folder deployment Bukupay dan tidak boleh menggunakan folder `data/` milik runtime B2B lama.
