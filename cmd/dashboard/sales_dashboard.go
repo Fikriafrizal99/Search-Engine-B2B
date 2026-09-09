@@ -18,6 +18,12 @@ type salesDashboardData struct {
 var salesDashboardTmpl = template.Must(template.New("sales-dashboard").Parse(salesDashboardHTML))
 
 func registerSalesDashboardRoutes(mux *http.ServeMux, a *app) {
+	// The legacy application still registers GET / as a catch-all. On the
+	// Bukupay branch, claim the exact root so normal navigation can never fall
+	// back into the old B2B dashboard.
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/database", http.StatusSeeOther)
+	})
 	mux.HandleFunc("GET /sales", a.handleSalesDashboard)
 	mux.HandleFunc("GET /database", a.handleBukupayDatabase)
 	mux.HandleFunc("POST /bukupay/collect", a.handleBukupayCollect)
