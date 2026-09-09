@@ -6,16 +6,16 @@ import (
 )
 
 type SalesDashboardSummary struct {
-	CoverageAreas     int
-	CoverageInProgress int
-	CoverageCompleted int
-	VisitedToday      int
-	RevisitDue        int
-	TodayPlanID       int64
-	TodayPlanCount    int
-	TomorrowPlanID    int64
-	TomorrowPlanCount int
-	Merchant          MerchantPipelineStats
+	CoverageAreas		int
+	CoverageInProgress	int
+	CoverageCompleted	int
+	VisitedToday		int
+	RevisitDue		int
+	TodayPlanID		int64
+	TodayPlanCount		int
+	TomorrowPlanID		int64
+	TomorrowPlanCount	int
+	Merchant		MerchantPipelineStats
 }
 
 func (s *Store) SalesDashboardSummary(ctx context.Context, now time.Time, loc *time.Location) (SalesDashboardSummary, error) {
