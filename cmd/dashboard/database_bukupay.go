@@ -8,7 +8,9 @@ import (
 )
 
 type bukupayDatabaseData struct {
-	Dashboard dashboardData
+	Dashboard       dashboardData
+	PhoneCoverage   float64
+	WebsiteCoverage float64
 }
 
 type captureResponseWriter struct {
@@ -33,7 +35,7 @@ func (w *captureResponseWriter) Write(p []byte) (int, error) {
 	return w.body.Write(p)
 }
 
-var bukupayDatabaseTmpl = template.Must(template.New("bukupay-database").Funcs(funcs).Parse(bukupayDatabaseHTML))
+var bukupayDatabaseTmpl = template.Must(template.Must(template.New("bukupay-database").Funcs(funcs).Parse(bukupayDatabaseHTML)).ParseFS(uiAssets, "ui/shared.html"))
 
 func (a *app) handleBukupayDatabase(w http.ResponseWriter, r *http.Request) {
 	f := filterFromRequest(r)
@@ -49,9 +51,11 @@ func (a *app) handleBukupayDatabase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := bukupayDatabaseData{Dashboard: dashboardData{Records: records, Stats: st, Filter: f, Collect: a.collectStatus()}}
-	if err := bukupayDatabaseTmpl.Execute(w, data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if st.Total > 0 {
+		data.PhoneCoverage = 100 * float64(st.WithPhone) / float64(st.Total)
+		data.WebsiteCoverage = 100 * float64(st.WithWebsite) / float64(st.Total)
 	}
+	renderPhase2(w, bukupayDatabaseTmpl, data)
 }
 
 func (a *app) handleBukupayCollect(w http.ResponseWriter, r *http.Request) {
