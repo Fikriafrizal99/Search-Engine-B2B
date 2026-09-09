@@ -10,8 +10,9 @@ import (
 )
 
 type salesDashboardData struct {
-	Summary prospectstore.SalesDashboardSummary
-	Today   string
+	Summary  prospectstore.SalesDashboardSummary
+	Pipeline prospectstore.BukupayPipelineStats
+	Today    string
 }
 
 var salesDashboardTmpl = template.Must(template.New("sales-dashboard").Parse(salesDashboardHTML))
@@ -21,12 +22,22 @@ func registerSalesDashboardRoutes(mux *http.ServeMux, a *app) {
 }
 
 func (a *app) handleSalesDashboard(w http.ResponseWriter, r *http.Request) {
-	summary, err := a.store.SalesDashboardSummary(r.Context(), time.Now(), jakartaLocation)
+	now := time.Now()
+	summary, err := a.store.SalesDashboardSummary(r.Context(), now, jakartaLocation)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	data := salesDashboardData{Summary: summary, Today: time.Now().In(jakartaLocation).Format("02 Jan 2006")}
+	pipeline, err := a.store.BukupayPipelineStats(r.Context(), now, "")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	data := salesDashboardData{
+		Summary:  summary,
+		Pipeline: pipeline,
+		Today:    now.In(jakartaLocation).Format("02 Jan 2006"),
+	}
 	if err := salesDashboardTmpl.Execute(w, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
