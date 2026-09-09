@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const DefaultBaseURL = "https://raw.githubusercontent.com/emsifa/api-wilayah-indonesia/master/static/api"
+const DefaultBaseURL = "https://www.emsifa.com/api-wilayah-indonesia/v2"
 
 type Region struct {
 	ID   string `json:"id"`
@@ -33,7 +33,8 @@ var javaSumatraProvinceIDs = map[string]struct{}{
 	"31": {}, "32": {}, "33": {}, "34": {}, "35": {}, "36": {},
 }
 
-var numericID = regexp.MustCompile(`^[0-9]+$`)
+// v2 wilayah IDs are hierarchical and use dots, e.g. 31 -> 31.74 -> 31.74.01.
+var regionID = regexp.MustCompile(`^[0-9]+(?:\.[0-9]+)*$`)
 
 func New(cacheDir string) *Client { return NewWithBaseURL(cacheDir, DefaultBaseURL) }
 
@@ -69,14 +70,14 @@ func (c *Client) Regencies(ctx context.Context, provinceID string) ([]Region, er
 }
 
 func (c *Client) Districts(ctx context.Context, regencyID string) ([]Region, error) {
-	if !numericID.MatchString(regencyID) {
+	if !regionID.MatchString(regencyID) {
 		return nil, fmt.Errorf("invalid regency id")
 	}
 	return c.load(ctx, "districts-"+regencyID+".json", "districts/"+regencyID+".json")
 }
 
 func (c *Client) Villages(ctx context.Context, districtID string) ([]Region, error) {
-	if !numericID.MatchString(districtID) {
+	if !regionID.MatchString(districtID) {
 		return nil, fmt.Errorf("invalid district id")
 	}
 	return c.load(ctx, "villages-"+districtID+".json", "villages/"+districtID+".json")
@@ -85,15 +86,16 @@ func (c *Client) Villages(ctx context.Context, districtID string) ([]Region, err
 func (c *Client) load(ctx context.Context, cacheName, upstreamPath string) ([]Region, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
 	if strings.TrimSpace(c.cacheDir) != "" {
 		cachePath := filepath.Join(c.cacheDir, cacheName)
 		if data, err := os.ReadFile(cachePath); err == nil {
-			var regions []Region
-			if json.Unmarshal(data, &regions) == nil && len(regions) > 0 {
+			if regions, err := decodeRegions(data); err == nil && len(regions) > 0 {
 				return regions, nil
 			}
 		}
 	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/"+upstreamPath, nil)
 	if err != nil {
 		return nil, err
@@ -110,8 +112,8 @@ func (c *Client) load(ctx context.Context, cacheName, upstreamPath string) ([]Re
 	if err != nil {
 		return nil, fmt.Errorf("read geo data: %w", err)
 	}
-	var regions []Region
-	if err := json.Unmarshal(data, &regions); err != nil {
+	regions, err := decodeRegions(data)
+	if err != nil {
 		return nil, fmt.Errorf("decode geo data: %w", err)
 	}
 	if len(regions) == 0 {
@@ -121,6 +123,30 @@ func (c *Client) load(ctx context.Context, cacheName, upstreamPath string) ([]Re
 		if err := os.MkdirAll(c.cacheDir, 0o755); err == nil {
 			_ = os.WriteFile(filepath.Join(c.cacheDir, cacheName), data, 0o644)
 		}
+	}
+	return regions, nil
+}
+
+func decodeRegions(data []byte) ([]Region, error) {
+	// Backward compatibility for old cache/test payloads that were plain arrays.
+	var direct []Region
+	if err := json.Unmarshal(data, &direct); err == nil && len(direct) > 0 {
+		return direct, nil
+	}
+
+	// API v2 wraps list payloads as {"data":[...],"meta":{...}}.
+	var wrapped struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(data, &wrapped); err != nil {
+		return nil, err
+	}
+	if len(wrapped.Data) == 0 {
+		return nil, fmt.Errorf("missing data field")
+	}
+	var regions []Region
+	if err := json.Unmarshal(wrapped.Data, &regions); err != nil {
+		return nil, err
 	}
 	return regions, nil
 }
