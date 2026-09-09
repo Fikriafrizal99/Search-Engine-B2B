@@ -1,8 +1,8 @@
-name: B2B CI
+name: Bukupay CI
 
 on:
   push:
-    branches: [main]
+    branches: [main-bukupay]
   pull_request:
 
 permissions:
