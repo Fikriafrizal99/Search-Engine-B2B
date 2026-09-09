@@ -15,11 +15,12 @@ import (
 )
 
 type contactPageData struct {
-	Lead  prospectstore.ContactLead
-	Stats prospectstore.ExecutionStats
-	Nav   prospectstore.ContactNavigation
-	Mode  string
-	Empty bool
+	Lead     prospectstore.ContactLead
+	Stats    prospectstore.ExecutionStats
+	Pipeline prospectstore.BukupayPipelineStats
+	Nav      prospectstore.ContactNavigation
+	Mode     string
+	Empty    bool
 }
 
 var contactFuncs = template.FuncMap{
@@ -61,7 +62,13 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid contact mode", http.StatusBadRequest)
 		return
 	}
-	stats, err := a.store.ExecutionStats(r.Context(), time.Now(), jakartaLocation)
+	now := time.Now()
+	stats, err := a.store.ExecutionStats(r.Context(), now, jakartaLocation)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	pipeline, err := a.store.BukupayPipelineStats(r.Context(), now, "")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -79,9 +86,9 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		lead, err = a.store.NextContact(r.Context(), mode, time.Now())
+		lead, err = a.store.NextContact(r.Context(), mode, now)
 		if err == sql.ErrNoRows {
-			if err := contactTmpl.Execute(w, contactPageData{Stats: stats, Mode: mode, Empty: true}); err != nil {
+			if err := contactTmpl.Execute(w, contactPageData{Stats: stats, Pipeline: pipeline, Mode: mode, Empty: true}); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			return
@@ -96,7 +103,7 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := contactTmpl.Execute(w, contactPageData{Lead: lead, Stats: stats, Nav: nav, Mode: mode}); err != nil {
+	if err := contactTmpl.Execute(w, contactPageData{Lead: lead, Stats: stats, Pipeline: pipeline, Nav: nav, Mode: mode}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
