@@ -4,12 +4,30 @@
  const $=id=>document.getElementById(id);
  const p=$('province'),r=$('regency'),d=$('district'),v=$('village');
  const selects=[p,r,d,v], placeholders=['Pilih provinsi','Pilih kabupaten/kota','Pilih kecamatan','Pilih kelurahan'];
+ const scrapeModes=[...document.querySelectorAll('input[name="scrape-mode"]')];
+ const queryMode=$('scrape-query-mode'),manualPanel=$('manual-query-panel'),manualKeywords=$('manual-keywords'),manualIncludeDefaults=$('manual-include-defaults'),manualCount=$('manual-query-count');
  let geoController,coverageController,revision=0,mode='core',savedScope='',retry=()=>chooseCity('DKI JAKARTA','KOTA JAKARTA SELATAN');
  const norm=s=>s.toUpperCase().replace(/DAERAH KHUSUS (IBUKOTA )?JAKARTA/g,'DKI JAKARTA').replace(/ADMINISTRASI|ADMINISTRATIF/g,'').replace(/[^A-Z0-9]+/g,' ').trim();
  const label=el=>el.value?el.selectedOptions[0].textContent.trim():'';
  const currentScope=()=>savedScope || [v,d,r,p].map(label).filter(Boolean).join(', ')+(p.value?', Indonesia':'');
  function link(id,href,enabled){const el=$(id);el.setAttribute('aria-disabled',String(!enabled));if(enabled){el.href=href;el.removeAttribute('tabindex');}else{el.removeAttribute('href');el.tabIndex=-1;}}
  function reset(index){for(let i=index;i<selects.length;i++){selects[i].replaceChildren(new Option(placeholders[i],''));selects[i].disabled=true;}}
+ function customKeywords(){
+  const seen=new Set(),out=[];
+  (manualKeywords?.value||'').split(/[\n\r,;]+/).forEach(value=>{const keyword=value.trim();if(!keyword)return;const key=keyword.toLowerCase();if(seen.has(key))return;seen.add(key);out.push(keyword);});
+  return out;
+ }
+ function manualMode(){return scrapeModes.some(input=>input.checked&&input.value==='manual');}
+ function scrapeReady(){const keywords=customKeywords();return !!v.value&&(!manualMode()||(keywords.length>0&&keywords.length<=100&&keywords.every(x=>[...x].length<=120)));}
+ function updateScrapeButton(){if($('scrape-btn'))$('scrape-btn').disabled=!scrapeReady();}
+ function syncScrapeMode(){
+  const manual=manualMode(),keywords=customKeywords();
+  if(manualPanel)manualPanel.hidden=!manual;
+  if(manualCount)manualCount.textContent=String(keywords.length);
+  if(queryMode)queryMode.value=manual?(manualIncludeDefaults?.checked?'custom_plus_defaults':'custom'):'defaults_only';
+  document.querySelectorAll('.scrape-mode-card').forEach(card=>card.classList.toggle('active',!!card.querySelector('input:checked')));
+  updateScrapeButton();
+ }
  function clearCoverage(message='Pilih sampai kelurahan untuk melihat coverage.'){
   coverageController?.abort();$('coverage-section').setAttribute('aria-busy','false');$('coverage-status').textContent='PILIH KELURAHAN';$('coverage-status').className='ui-badge slate';
   $('coverage-message').hidden=false;$('coverage-message').textContent=message;$('coverage-message').className='p2-message';
@@ -34,7 +52,7 @@
  }
  function setMode(next){mode=next;['core','border','all'].forEach(x=>$(x+'-btn').setAttribute('aria-pressed',String(x===next)));$('border-options').hidden=next!=='border';$('saved-areas').hidden=next!=='all';}
  function chooseCity(province,city){return runGeo(async signal=>{reset(0);await load('/api/geo/provinces',p,0,signal);selectName(p,province);await load('/api/geo/regencies?province_id='+encodeURIComponent(p.value),r,1,signal);selectName(r,city);await load('/api/geo/districts?regency_id='+encodeURIComponent(r.value),d,2,signal);p.disabled=mode!=='all';r.disabled=mode!=='all';});}
- function sync(){const scope=currentScope();$('scope').textContent=scope||'Pilih area kerja';$('collect-location').value=scope;if(v.value||savedScope)loadCoverage(scope);else clearCoverage();}
+ function sync(){const scope=currentScope();$('scope').textContent=scope||'Pilih area kerja';$('collect-location').value=scope;if(v.value||savedScope)loadCoverage(scope);else clearCoverage();syncScrapeMode();}
  async function restore(scope){
   if(!scope)return;setMode('all');
   const parts=scope.split(',').map(s=>s.trim());
@@ -58,6 +76,8 @@
  $('all-btn').onclick=()=>{setMode('all');runGeo(async signal=>{reset(0);await load('/api/geo/provinces',p,0,signal);});};
  document.querySelectorAll('[data-city]').forEach(b=>b.onclick=()=>chooseCity(b.dataset.province,b.dataset.city));
  $('saved-area').onchange=()=>restore($('saved-area').value);$('geo-retry').onclick=()=>retry();
+ scrapeModes.forEach(input=>input.addEventListener('change',syncScrapeMode));
+ manualKeywords?.addEventListener('input',syncScrapeMode);manualIncludeDefaults?.addEventListener('change',syncScrapeMode);
  function recommendation(text,href){const li=document.createElement('li');if(href){const a=document.createElement('a');a.href=href;a.textContent=text;li.append(a);}else li.textContent=text;$('area-recommendations').append(li);}
  function snapshot(count,text,icon='store',tone='blue'){
   const row=document.createElement('p'),box=document.createElement('span'),body=document.createElement('span'),b=document.createElement('strong');
@@ -83,7 +103,7 @@
    $('progress-text').textContent=data.exists?q.ProgressPercent.toFixed(1)+'% coverage selesai':'Coverage belum tersedia';
    $('progress-detail').textContent=data.exists?`${q.Visited} visited + ${q.Excluded} excluded dari ${q.Total} merchant`:'';
    const encoded=encodeURIComponent(scope),route='/visit-plans/new?location='+encoded;
-   $('scrape-btn').disabled=!v.value;link('merchant-link','/merchants?location='+encoded,true);
+   updateScrapeButton();link('merchant-link','/merchants?location='+encoded,true);
    link('route-link',s.TomorrowPlanID?'/visit-plan/'+s.TomorrowPlanID:route,s.TomorrowPlanID>0||s.EligibleTomorrow>0);
    $('route-link').querySelector('span').textContent=s.TomorrowPlanID?'Lihat Rute Besok':'Buat Rute Besok';
    $('area-snapshot').replaceChildren();snapshot(s.WithPhone,'merchant dengan telepon','phone','green');snapshot(s.WithMaps,'merchant dengan tautan Maps','map');
@@ -98,13 +118,19 @@
    const next=[...$('saved-area').options].find(o=>o.value&&o.value!==scope&&Number(o.dataset.remaining)>0);
    if(next)recommendation('Area berikut dengan sisa coverage terbanyak: '+next.value,'/areas?location='+encodeURIComponent(next.value));
   }catch(e){if(e.name==='AbortError')return;clearCoverage(e.message);$('coverage-status').textContent='ERROR';$('coverage-message').className='p2-message p2-error';const b=document.createElement('button');b.type='button';b.className='ui-button ui-compact';b.textContent='Coba lagi';b.onclick=()=>loadCoverage(scope);$('coverage-message').append(' ',b);}
-  finally{if(!signal.aborted)$('coverage-section').setAttribute('aria-busy','false');}
+  finally{if(!signal.aborted)$('coverage-section').setAttribute('aria-busy','false');syncScrapeMode();}
  }
  $('scrape-form').addEventListener('submit',async e=>{
-  e.preventDefault();if($('scrape-btn').disabled||!v.value)return;
-  $('scrape-btn').disabled=true;$('scrape-message').hidden=false;$('scrape-message').className='p2-message';$('scrape-message').textContent='Menjalankan scrape kelurahan…';
+  e.preventDefault();syncScrapeMode();
+  const keywords=customKeywords();
+  if(manualMode()&&keywords.length===0){$('scrape-message').hidden=false;$('scrape-message').className='p2-message p2-error';$('scrape-message').textContent='Isi minimal satu custom query untuk mode Manual.';manualKeywords?.focus();return;}
+  if(keywords.length>100){$('scrape-message').hidden=false;$('scrape-message').className='p2-message p2-error';$('scrape-message').textContent='Maksimal 100 custom query per sekali scrape.';manualKeywords?.focus();return;}
+  if(keywords.some(x=>[...x].length>120)){$('scrape-message').hidden=false;$('scrape-message').className='p2-message p2-error';$('scrape-message').textContent='Setiap custom query maksimal 120 karakter.';manualKeywords?.focus();return;}
+  if($('scrape-btn').disabled||!v.value)return;
+  $('scrape-btn').disabled=true;$('scrape-message').hidden=false;$('scrape-message').className='p2-message';$('scrape-message').textContent=manualMode()?`Menjalankan ${keywords.length} custom query${manualIncludeDefaults?.checked?' + preset Bukupay':''}…`:'Menjalankan preset otomatis Bukupay…';
   try{const res=await fetch('/bukupay/collect',{method:'POST',body:new URLSearchParams(new FormData(e.target))});if(!res.ok)throw Error(await res.text());if(!res.redirected)throw Error('Scrape belum dapat dimulai. Silakan coba lagi.');window.location.assign(res.url);}
-  catch(err){$('scrape-message').className='p2-message p2-error';$('scrape-message').textContent=err.message;$('scrape-btn').disabled=!v.value;}
+  catch(err){$('scrape-message').className='p2-message p2-error';$('scrape-message').textContent=err.message;updateScrapeButton();}
  });
+ syncScrapeMode();
  const initial=$('main').dataset.initialScope;if(initial)restore(initial);else chooseCity('DKI JAKARTA','KOTA JAKARTA SELATAN');
 })();
