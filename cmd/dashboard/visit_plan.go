@@ -24,13 +24,20 @@ type visitPlanPageData struct {
 	TotalDistanceKM      float64
 	TotalDurationSeconds float64
 	RoutingLabel         string
+	Done                 int
+	Revisit              int
+	Remaining            int
+	NextProspectID       int64
 }
 
-var visitPlanFormTmpl = template.Must(template.New("visit-plan-form").Parse(visitPlanFormHTML))
-var visitPlanTmpl = template.Must(template.New("visit-plan").Funcs(template.FuncMap{
+var visitPlanFormTmpl = template.Must(template.Must(template.New("visit-plan-form").Parse(visitPlanFormHTML)).ParseFS(uiAssets, "ui/shared.html"))
+var visitPlanTmpl = template.Must(template.Must(template.New("visit-plan").Funcs(template.FuncMap{
 	"wa":            waNumber,
 	"durationLabel": durationLabel,
-}).Parse(visitPlanHTML))
+	"routeStatusLabel": func(value string) string {
+		return labels(map[string]string{"planned": "Planned", "visited": "Visited", "revisit_required": "Revisit", "excluded": "Excluded"}, value, value)
+	},
+}).Parse(visitPlanHTML)).ParseFS(uiAssets, "ui/shared.html"))
 
 func registerVisitPlanRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("GET /visit-plans/new", a.handleVisitPlanForm)
@@ -48,9 +55,7 @@ func (a *app) handleVisitPlanForm(w http.ResponseWriter, r *http.Request) {
 		}
 		tomorrow = date
 	}
-	if err := visitPlanFormTmpl.Execute(w, visitPlanFormData{Location: location, PlanDate: tomorrow, Target: 25}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	renderPhase2(w, visitPlanFormTmpl, visitPlanFormData{Location: location, PlanDate: tomorrow, Target: 25})
 }
 
 func (a *app) handleCreateVisitPlan(w http.ResponseWriter, r *http.Request) {
@@ -113,13 +118,30 @@ func (a *app) handleVisitPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var totalDistance, totalDuration float64
+	done, revisit := 0, 0
+	var nextProspectID int64
 	for _, item := range plan.Items {
 		totalDistance += item.DistanceFromPreviousKM
 		totalDuration += metrics.DurationSeconds[item.ID]
+		switch item.Status {
+		case prospectstore.VisitVisited, prospectstore.VisitExcluded:
+			done++
+		case prospectstore.VisitRevisitRequired:
+			done++
+			revisit++
+		default:
+			if nextProspectID == 0 {
+				nextProspectID = item.Prospect.ID
+			}
+		}
 	}
 	routingLabel := "Haversine fallback"
 	if metrics.RoutingSource == "osrm" {
 		routingLabel = "OSRM road routing"
+	}
+	remaining := len(plan.Items) - done
+	if remaining < 0 {
+		remaining = 0
 	}
 	data := visitPlanPageData{
 		Plan:                 plan,
@@ -127,10 +149,12 @@ func (a *app) handleVisitPlan(w http.ResponseWriter, r *http.Request) {
 		TotalDistanceKM:      totalDistance,
 		TotalDurationSeconds: totalDuration,
 		RoutingLabel:         routingLabel,
+		Done:                 done,
+		Revisit:              revisit,
+		Remaining:            remaining,
+		NextProspectID:       nextProspectID,
 	}
-	if err := visitPlanTmpl.Execute(w, data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	renderPhase2(w, visitPlanTmpl, data)
 }
 
 func durationLabel(seconds float64) string {
