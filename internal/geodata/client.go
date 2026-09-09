@@ -49,7 +49,7 @@ func NewWithBaseURL(cacheDir, baseURL string) *Client {
 }
 
 func (c *Client) Provinces(ctx context.Context) ([]Region, error) {
-	regions, err := c.load(ctx, "provinces.json", "provinces.json")
+	regions, err := c.load(ctx, "v2-provinces.json", "provinces.json")
 	if err != nil {
 		return nil, err
 	}
@@ -66,21 +66,21 @@ func (c *Client) Regencies(ctx context.Context, provinceID string) ([]Region, er
 	if _, ok := javaSumatraProvinceIDs[provinceID]; !ok {
 		return nil, fmt.Errorf("province %q is outside Java-Sumatra scope", provinceID)
 	}
-	return c.load(ctx, "regencies-"+provinceID+".json", "regencies/"+provinceID+".json")
+	return c.load(ctx, "v2-regencies-"+provinceID+".json", "regencies/"+provinceID+".json")
 }
 
 func (c *Client) Districts(ctx context.Context, regencyID string) ([]Region, error) {
 	if !regionID.MatchString(regencyID) {
 		return nil, fmt.Errorf("invalid regency id")
 	}
-	return c.load(ctx, "districts-"+regencyID+".json", "districts/"+regencyID+".json")
+	return c.load(ctx, "v2-districts-"+regencyID+".json", "districts/"+regencyID+".json")
 }
 
 func (c *Client) Villages(ctx context.Context, districtID string) ([]Region, error) {
 	if !regionID.MatchString(districtID) {
 		return nil, fmt.Errorf("invalid district id")
 	}
-	return c.load(ctx, "villages-"+districtID+".json", "villages/"+districtID+".json")
+	return c.load(ctx, "v2-villages-"+districtID+".json", "villages/"+districtID+".json")
 }
 
 func (c *Client) load(ctx context.Context, cacheName, upstreamPath string) ([]Region, error) {
@@ -128,7 +128,7 @@ func (c *Client) load(ctx context.Context, cacheName, upstreamPath string) ([]Re
 }
 
 func decodeRegions(data []byte) ([]Region, error) {
-	// Backward compatibility for old cache/test payloads that were plain arrays.
+	// Backward compatibility for custom/test payloads that are plain arrays.
 	var direct []Region
 	if err := json.Unmarshal(data, &direct); err == nil && len(direct) > 0 {
 		return direct, nil
