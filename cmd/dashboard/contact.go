@@ -131,6 +131,19 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 	owner := strings.TrimSpace(r.FormValue("owner"))
 	note := strings.TrimSpace(r.FormValue("note"))
 	channel := strings.TrimSpace(strings.ToLower(r.FormValue("channel")))
+
+	// Resolve Bukupay field revisit policy before lead_execution logs the event,
+	// so execution, visit coverage, and history all receive the same due time.
+	if next.IsZero() {
+		now := time.Now()
+		switch result {
+		case "owner_not_found":
+			next = now.Add(3 * 24 * time.Hour)
+		case "store_closed":
+			next = now.Add(7 * 24 * time.Hour)
+		}
+	}
+
 	execution, err := a.store.LogContact(r.Context(), prospectstore.ContactInput{
 		ProspectID: id, Channel: channel, Result: result, Note: note, NextFollowUpAt: next, Owner: owner,
 	})
@@ -139,8 +152,6 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// LogContact can create an automatic retry/follow-up time. Reuse that same
-	// resolved value for visit/revisit and merchant sales so the pipelines stay consistent.
 	effectiveNext := next
 	if effectiveNext.IsZero() && strings.TrimSpace(execution.NextFollowUpAt) != "" {
 		if parsed, parseErr := time.Parse(time.RFC3339, execution.NextFollowUpAt); parseErr == nil {
@@ -154,7 +165,8 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Pure canvassing outcomes belong to merchant_visit_state, not the sales pipeline.
+	// Pure coverage outcomes stay in visit/revisit state. Sales outcomes are
+	// synchronized to the Bukupay acquisition pipeline.
 	if result != "visited" && result != "owner_not_found" && result != "store_closed" {
 		if merchantStatus, ok := prospectstore.MerchantStatusFromContactResult(result); ok {
 			if _, err := a.store.TouchMerchantStatus(r.Context(), id, merchantStatus, owner, note, effectiveNext); err != nil {
