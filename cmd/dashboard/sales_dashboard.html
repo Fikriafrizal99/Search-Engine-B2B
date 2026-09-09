@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bukupay Sales Dashboard</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,sans-serif;color:#172033;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1280px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:16px}.top h1{margin:0;font-size:26px}.subtle{color:#718096;font-size:12px}.nav{display:flex;gap:8px;flex-wrap:wrap}.btn{display:inline-flex;align-items:center;border:1px solid #d9e1ec;border-radius:10px;min-height:40px;padding:8px 14px;background:#fff;color:#172033;text-decoration:none}.primary{background:#172033;color:#fff;border-color:#172033}.grid{display:grid;gap:12px}.hero{grid-template-columns:2fr 1fr}.stats{grid-template-columns:repeat(5,1fr);margin-bottom:14px}.sales{grid-template-columns:repeat(5,1fr)}.panel,.card{background:#fff;border:1px solid #e8edf5;border-radius:14px;box-shadow:0 4px 18px rgba(18,38,63,.04)}.panel{padding:16px;margin-bottom:14px}.card{padding:14px}.card b{display:block;font-size:24px;margin-top:5px}.section-title{font-weight:800;margin-bottom:10px}.route-box{display:grid;grid-template-columns:1fr 1fr;gap:10px}.route-card{border:1px solid #e8edf5;border-radius:12px;padding:14px}.route-card strong{display:block;font-size:18px;margin-bottom:4px}.route-card .actions{margin-top:12px}.coverage{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.coverage .card b{font-size:21px}.note{padding:11px 12px;border-radius:10px;background:#fff8e7;font-size:13px;line-height:1.45}.pipeline a{text-decoration:none;color:inherit}.pipeline .card:hover{border-color:#bcc8d8}.quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}@media(max-width:980px){.stats,.sales{grid-template-columns:repeat(3,1fr)}.hero{grid-template-columns:1fr}}@media(max-width:700px){.wrap{padding:12px}.top{align-items:flex-start;flex-direction:column}.stats,.sales,.coverage,.route-box{grid-template-columns:1fr 1fr}}@media(max-width:480px){.stats,.sales,.coverage,.route-box{grid-template-columns:1fr}.nav{width:100%}.nav .btn{flex:1}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="top">
+  <div><h1>Bukupay Sales Dashboard</h1><div class="subtle">{{.Today}} · Jakarta Selatan & area irisan</div></div>
+  <div class="nav"><a class="btn primary" href="/areas">Area Planner</a><a class="btn" href="/merchants">Merchant Pipeline</a><a class="btn" href="/contact?mode=all">Visit Session</a><a class="btn" href="/database">Database</a></div>
+</div>
+
+<div class="grid stats">
+  <div class="card"><span class="subtle">Visit Hari Ini</span><b>{{.Summary.VisitedToday}}</b></div>
+  <div class="card"><span class="subtle">Revisit Due</span><b>{{.Summary.RevisitDue}}</b></div>
+  <div class="card"><span class="subtle">Interested</span><b>{{.Summary.Merchant.Interested}}</b></div>
+  <div class="card"><span class="subtle">Follow Up</span><b>{{.Summary.Merchant.FollowUp}}</b></div>
+  <div class="card"><span class="subtle">Active</span><b>{{.Summary.Merchant.Active}}</b></div>
+</div>
+
+<div class="grid hero">
+  <div class="panel">
+    <div class="section-title">Rencana Kunjungan</div>
+    <div class="route-box">
+      <div class="route-card"><span class="subtle">Hari ini</span><strong>{{.Summary.TodayPlanCount}} merchant</strong>{{if gt .Summary.TodayPlanID 0}}<div class="actions"><a class="btn primary" href="/visit-plan/{{.Summary.TodayPlanID}}">Buka Rute Hari Ini</a></div>{{else}}<div class="subtle">Belum ada rute tersimpan hari ini.</div>{{end}}</div>
+      <div class="route-card"><span class="subtle">Besok</span><strong>{{.Summary.TomorrowPlanCount}} merchant</strong>{{if gt .Summary.TomorrowPlanID 0}}<div class="actions"><a class="btn primary" href="/visit-plan/{{.Summary.TomorrowPlanID}}">Buka Rute Besok</a></div>{{else}}<div class="actions"><a class="btn primary" href="/areas">Buat Rute Besok</a></div>{{end}}</div>
+    </div>
+    <div class="note" style="margin-top:12px">Workflow utama: pilih kelurahan → scrape sekali → buat rute 25 merchant → visit → update hasil → lanjut sampai coverage desa selesai.</div>
+  </div>
+
+  <div class="panel">
+    <div class="section-title">Coverage Area</div>
+    <div class="coverage">
+      <div class="card"><span class="subtle">Area Tersimpan</span><b>{{.Summary.CoverageAreas}}</b></div>
+      <div class="card"><span class="subtle">In Progress</span><b>{{.Summary.CoverageInProgress}}</b></div>
+      <div class="card"><span class="subtle">Completed</span><b>{{.Summary.CoverageCompleted}}</b></div>
+    </div>
+    <div class="quick"><a class="btn primary" href="/areas">Pilih Area Kerja</a></div>
+  </div>
+</div>
+
+<div class="panel pipeline">
+  <div class="section-title">Sales Pipeline</div>
+  <div class="grid sales">
+    <a href="/merchants?status=interested"><div class="card"><span class="subtle">Interested</span><b>{{.Summary.Merchant.Interested}}</b></div></a>
+    <a href="/merchants?status=follow_up"><div class="card"><span class="subtle">Follow Up</span><b>{{.Summary.Merchant.FollowUp}}</b></div></a>
+    <a href="/merchants?status=registered"><div class="card"><span class="subtle">Registered</span><b>{{.Summary.Merchant.Registered}}</b></div></a>
+    <a href="/merchants?status=installed"><div class="card"><span class="subtle">Installed</span><b>{{.Summary.Merchant.Installed}}</b></div></a>
+    <a href="/merchants?status=active"><div class="card"><span class="subtle">Active</span><b>{{.Summary.Merchant.Active}}</b></div></a>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="section-title">Akses Cepat</div>
+  <div class="quick"><a class="btn primary" href="/areas">Area Planner</a><a class="btn" href="/contact?mode=follow_up">Follow Up Due</a><a class="btn" href="/merchants">Semua Merchant</a><a class="btn" href="/database">Database & Scraper</a></div>
+</div>
+</div></body></html>
