@@ -27,7 +27,7 @@ func main() {
 	includeDefaults := flag.Bool("include-defaults", false, "include Bukupay merchant preset keywords in addition to custom keywords")
 	configDir := flag.String("config-dir", "config", "config directory")
 	engine := flag.String("engine", filepath.FromSlash("bin/google_maps_scraper"), "path to upstream google maps scraper binary")
-	output := flag.String("output", filepath.FromSlash("data/prospects.csv"), "filtered merchant CSV output")
+	output := flag.String("output", filepath.FromSlash("data/prospects.csv"), "normalized merchant CSV output")
 	dbPath := flag.String("db", filepath.FromSlash("data/prospects.db"), "SQLite merchant prospect database")
 	noDB := flag.Bool("no-db", false, "skip database import")
 	keepRaw := flag.Bool("keep-raw", false, "keep temporary raw files")
@@ -113,7 +113,7 @@ func main() {
 	if err := runCtx.Err(); err != nil {
 		fatalf("collect cancelled")
 	}
-	fmt.Println("PHASE post-process")
+	fmt.Println("PHASE normalize-dedup")
 	if err := collectorpost.ProcessCSV(rawFile, *output, preset); err != nil {
 		fatalf("post-process: %v", err)
 	}
@@ -133,6 +133,9 @@ func main() {
 			scope = strings.TrimSpace(*subarea)
 		}
 		count, importErr := store.ImportCSV(runCtx, *output, scope)
+		if importErr == nil {
+			importErr = store.RegisterScrape(runCtx, scope)
+		}
 		closeErr := store.Close()
 		if importErr != nil {
 			if errors.Is(runCtx.Err(), context.Canceled) {
@@ -144,6 +147,9 @@ func main() {
 			fatalf("close database: %v", closeErr)
 		}
 		fmt.Printf("Merchant DB: %s (%d rows processed)\n", *dbPath, count)
+		if strings.TrimSpace(scope) != "" {
+			fmt.Printf("Coverage scope registered: %s\n", scope)
+		}
 	}
 	fmt.Println("PHASE done")
 	if *keepRaw {

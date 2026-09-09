@@ -130,17 +130,37 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 	result := strings.TrimSpace(strings.ToLower(r.FormValue("result")))
 	owner := strings.TrimSpace(r.FormValue("owner"))
 	note := strings.TrimSpace(r.FormValue("note"))
-	_, err = a.store.LogContact(r.Context(), prospectstore.ContactInput{
-		ProspectID: id, Channel: r.FormValue("channel"), Result: result, Note: note, NextFollowUpAt: next, Owner: owner,
+	channel := strings.TrimSpace(strings.ToLower(r.FormValue("channel")))
+	execution, err := a.store.LogContact(r.Context(), prospectstore.ContactInput{
+		ProspectID: id, Channel: channel, Result: result, Note: note, NextFollowUpAt: next, Owner: owner,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if merchantStatus, ok := prospectstore.MerchantStatusFromContactResult(result); ok {
-		if _, err := a.store.TouchMerchantStatus(r.Context(), id, merchantStatus, owner, note, next); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+
+	// LogContact can create an automatic retry/follow-up time. Reuse that same
+	// resolved value for visit/revisit and merchant sales so the pipelines stay consistent.
+	effectiveNext := next
+	if effectiveNext.IsZero() && strings.TrimSpace(execution.NextFollowUpAt) != "" {
+		if parsed, parseErr := time.Parse(time.RFC3339, execution.NextFollowUpAt); parseErr == nil {
+			effectiveNext = parsed
+		}
+	}
+	if _, err := a.store.RecordVisitResult(r.Context(), prospectstore.VisitResultInput{
+		ProspectID: id, Channel: channel, Result: result, PICName: owner, Note: note, NextActionAt: effectiveNext,
+	}); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Pure canvassing outcomes belong to merchant_visit_state, not the sales pipeline.
+	if result != "visited" && result != "owner_not_found" && result != "store_closed" {
+		if merchantStatus, ok := prospectstore.MerchantStatusFromContactResult(result); ok {
+			if _, err := a.store.TouchMerchantStatus(r.Context(), id, merchantStatus, owner, note, effectiveNext); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 	}
 	http.Redirect(w, r, "/contact?mode="+url.QueryEscape(mode), http.StatusSeeOther)

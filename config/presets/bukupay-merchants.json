@@ -1,6 +1,6 @@
 {
   "name": "bukupay-merchants",
-  "description": "Preset merchant acquisition untuk prospecting Soundbox QRIS Bukupay melalui listing bisnis publik.",
+  "description": "Preset merchant discovery Bukupay. Semua listing valid dipertahankan sebagai master merchant; filtering bisnis dilakukan saat operasional, bukan saat scrape.",
   "keywords": [
     "warung",
     "warung sembako",
@@ -44,21 +44,12 @@
     "toko handphone"
   ],
   "filters": {
-    "required_fields": ["title", "address"],
+    "required_fields": ["title"],
     "min_rating": 0,
     "has_phone": false,
     "has_website": false,
     "include_title_patterns": [],
-    "exclude_title_patterns": [
-      "bank",
-      "atm",
-      "kantor pemerintahan",
-      "sekolah",
-      "universitas",
-      "masjid",
-      "gereja",
-      "rumah sakit"
-    ]
+    "exclude_title_patterns": []
   },
   "dedup": {
     "keys": ["place_id", "data_id", "phone", "title+coordinates"]

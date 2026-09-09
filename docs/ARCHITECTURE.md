@@ -1,28 +1,63 @@
 # Architecture — Bukupay Merchant Hunter
 
-`feat/bukupay-sales` memisahkan merchant acquisition Bukupay dari workflow lama.
+Branch `feat/bukupay-sales` adalah aplikasi merchant acquisition Bukupay yang terpisah dari workflow BPKB.
 
-## Flow
+Dokumen detail coverage dan visit planning ada di [`docs/BUKUPAY_VISIT_SYSTEM.md`](BUKUPAY_VISIT_SYSTEM.md).
 
-1. Region selector: Province -> Regency/City -> District -> Village/Kelurahan.
-2. Preset `bukupay-merchants` atau custom keyword membentuk query Google Maps.
-3. `gosom/google-maps-scraper` mengumpulkan listing bisnis publik.
-4. Collector melakukan filtering dan deduplication. Nomor telepon tidak wajib karena merchant dapat diproses lewat canvassing lapangan.
-5. Listing bersih diimpor ke `data/prospects.db`.
-6. Visit / Prospecting Session mencatat aktivitas sales.
-7. Merchant yang relevan masuk ke `merchant_sales` dan Merchant Pipeline.
-8. Pipeline melacak presentasi, minat, registrasi, instalasi Soundbox, dan aktivasi merchant.
-
-## Separation
-
-Discovery data dan sales execution dipisahkan:
+## Core flow
 
 ```text
-prospects / prospect_profiles
-        |
-        +-> lead_execution / contact_events
-        |
-        +-> merchant_sales / merchant_events
+Region selector (Province -> Regency/City -> District -> Village)
+        ↓
+Google Maps scrape per desa
+        ↓
+Technical dedup / normalization
+        ↓
+Master Merchant Database (`prospects`)
+        ↓
+Coverage / Visit Planning
+        ↓
+25 merchant per hari berdasarkan jarak
+        ↓
+Visit history
+        ↓
+Sales pipeline Bukupay
+        ↓
+Registration -> Installation -> Active
 ```
 
-`prospects` menyimpan listing publik. `merchant_sales` hanya menyimpan fakta hasil observasi atau komunikasi sales seperti QRIS, Soundbox, PIC, traffic, interest, serta status registrasi/instalasi/aktivasi.
+## Data ownership
+
+```text
+prospects
+  public Google Maps/master discovery data
+        |
+        +-> coverage_areas
+        |     progress satu location scope/desa
+        |
+        +-> merchant_visit_state
+        |     canonical canvassing state
+        |
+        +-> merchant_visit_history
+        |     immutable field visit history
+        |
+        +-> visit_plans / visit_plan_items
+        |     persisted daily route
+        |
+        +-> lead_execution / contact_events
+        |     communication/follow-up execution
+        |
+        +-> merchant_sales / merchant_events
+              Bukupay sales facts and conversion pipeline
+```
+
+## Important rules
+
+1. Scrape data is retained as master merchant data; no aggressive business filtering.
+2. Duplicate records are deduplicated/upserted rather than re-inserted.
+3. Phone, website, rating, and review are not mandatory.
+4. Coordinates are required only for automatic route planning, not for retaining a merchant in the master database.
+5. Re-scraping updates Maps data and `last_seen`; it must not reset visit or sales history.
+6. Visit state and sales state are separate concerns.
+7. P0 route ordering uses Haversine nearest-neighbor from the chosen start point.
+8. Road routing/OSRM is an enhancement after the P0 data and planning foundation is stable.
