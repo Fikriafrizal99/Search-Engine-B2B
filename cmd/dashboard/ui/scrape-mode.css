@@ -1,0 +1,105 @@
+/* Compact scrape-mode controls for Area Planner. Keeps the existing Phase 2 layout intact. */
+.phase2 .scrape-query {
+  margin: 4px 0 14px;
+  padding: 14px;
+  border: 1px solid var(--ui-line);
+  border-radius: 8px;
+  background: #f8faff;
+}
+.phase2 .scrape-query-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.phase2 .scrape-query-head > div > strong {
+  display: block;
+  color: var(--ui-text);
+  font-size: 13px;
+}
+.phase2 .scrape-query-head p { margin-top: 3px; }
+.phase2 .scrape-mode-picker {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 9px;
+}
+.phase2 .scrape-mode-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid #dde6f2;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ui-text);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.phase2 .scrape-mode-card:hover { border-color: #a9c5ed; }
+.phase2 .scrape-mode-card.active {
+  border-color: #2b70e6;
+  background: #edf4ff;
+  box-shadow: inset 0 0 0 1px #2b70e612;
+}
+.phase2 .scrape-mode-card input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--ui-blue);
+}
+.phase2 .scrape-mode-card .ui-iconbox {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+}
+.phase2 .scrape-mode-card strong {
+  display: block;
+  font-size: 12px;
+}
+.phase2 .scrape-mode-card small {
+  display: block;
+  margin-top: 2px;
+  color: var(--ui-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.phase2 .manual-query-panel {
+  margin-top: 11px;
+  padding-top: 11px;
+  border-top: 1px solid var(--ui-line);
+}
+.phase2 .manual-query-panel textarea {
+  width: 100%;
+  min-height: 82px;
+  resize: vertical;
+  border: 1px solid var(--ui-line);
+  border-radius: 7px;
+  padding: 9px 12px;
+  background: #fff;
+  color: var(--ui-text);
+  font: inherit;
+  line-height: 1.45;
+}
+.phase2 .manual-query-panel textarea:focus-visible {
+  outline: 3px solid #155ed7;
+  outline-offset: 2px;
+}
+.phase2 .manual-query-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 7px;
+}
+.phase2 .manual-query-footer .p2-check { min-height: 28px; }
+.phase2 .manual-query-footer .ui-muted { font-size: 11px; }
+.phase2 .manual-query-footer .ui-muted strong { color: var(--ui-text); }
+@media(max-width:680px){
+  .phase2 .scrape-query { padding: 12px; }
+  .phase2 .scrape-mode-picker { grid-template-columns: 1fr; }
+  .phase2 .scrape-query-head { align-items: center; }
+}
