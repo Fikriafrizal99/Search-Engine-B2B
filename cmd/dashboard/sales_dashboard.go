@@ -19,6 +19,7 @@ var salesDashboardTmpl = template.Must(template.New("sales-dashboard").Parse(sal
 
 func registerSalesDashboardRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("GET /sales", a.handleSalesDashboard)
+	mux.HandleFunc("GET /database", a.handleBukupayDatabase)
 }
 
 func (a *app) handleSalesDashboard(w http.ResponseWriter, r *http.Request) {
