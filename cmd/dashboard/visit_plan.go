@@ -19,13 +19,17 @@ type visitPlanFormData struct {
 }
 
 type visitPlanPageData struct {
-	Plan            prospectstore.VisitPlan
-	TotalDistanceKM float64
+	Plan                 prospectstore.VisitPlan
+	RoadMetrics          prospectstore.VisitPlanRoadMetrics
+	TotalDistanceKM      float64
+	TotalDurationSeconds float64
+	RoutingLabel         string
 }
 
 var visitPlanFormTmpl = template.Must(template.New("visit-plan-form").Parse(visitPlanFormHTML))
 var visitPlanTmpl = template.Must(template.New("visit-plan").Funcs(template.FuncMap{
-	"wa": waNumber,
+	"wa":            waNumber,
+	"durationLabel": durationLabel,
 }).Parse(visitPlanHTML))
 
 func registerVisitPlanRoutes(mux *http.ServeMux, a *app) {
@@ -96,13 +100,49 @@ func (a *app) handleVisitPlan(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	var total float64
-	for _, item := range plan.Items {
-		total += item.DistanceFromPreviousKM
+	metrics, err := a.store.GetVisitPlanRoadMetrics(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	if err := visitPlanTmpl.Execute(w, visitPlanPageData{Plan: plan, TotalDistanceKM: total}); err != nil {
+	var totalDistance, totalDuration float64
+	for _, item := range plan.Items {
+		totalDistance += item.DistanceFromPreviousKM
+		totalDuration += metrics.DurationSeconds[item.ID]
+	}
+	routingLabel := "Haversine fallback"
+	if metrics.RoutingSource == "osrm" {
+		routingLabel = "OSRM road routing"
+	}
+	data := visitPlanPageData{
+		Plan:                 plan,
+		RoadMetrics:          metrics,
+		TotalDistanceKM:      totalDistance,
+		TotalDurationSeconds: totalDuration,
+		RoutingLabel:         routingLabel,
+	}
+	if err := visitPlanTmpl.Execute(w, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func durationLabel(seconds float64) string {
+	if seconds <= 0 {
+		return "-"
+	}
+	minutes := int(seconds/60 + 0.5)
+	if minutes < 1 {
+		minutes = 1
+	}
+	if minutes < 60 {
+		return fmt.Sprintf("%d menit", minutes)
+	}
+	hours := minutes / 60
+	remaining := minutes % 60
+	if remaining == 0 {
+		return fmt.Sprintf("%d jam", hours)
+	}
+	return fmt.Sprintf("%d jam %d menit", hours, remaining)
 }
 
 //go:embed visit_plan_form.html
