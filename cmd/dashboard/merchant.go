@@ -24,9 +24,11 @@ type merchantPipelinePageData struct {
 }
 
 type merchantPageData struct {
-	Prospect prospectstore.Prospect
-	Merchant prospectstore.Merchant
-	History  []prospectstore.MerchantEvent
+	Prospect   prospectstore.Prospect
+	Merchant   prospectstore.Merchant
+	VisitState prospectstore.VisitState
+	History    []prospectstore.MerchantEvent
+	Visits     []prospectstore.VisitHistoryEntry
 }
 
 var merchantFuncs = template.FuncMap{
@@ -34,10 +36,20 @@ var merchantFuncs = template.FuncMap{
 	"contactTime":   contactTime,
 	"inputTime":     merchantInputTime,
 	"wa":            waNumber,
+	"statusTone":    dashboardStatusTone,
+	"resultLabel":   contactResultLabel,
+	"qualificationLabel": func(value string) string {
+		return labels(map[string]string{"low": "Rendah", "medium": "Sedang", "high": "Tinggi", "cold": "Cold", "warm": "Warm", "hot": "Hot"}, value, "Belum dinilai")
+	},
+	"visitLabel": func(value string) string {
+		return labels(map[string]string{
+			"unvisited": "Belum dikunjungi", "planned": "Planned", "visited": "Visited", "revisit_required": "Revisit", "excluded": "Excluded",
+		}, value, value)
+	},
 }
 
 var merchantsTmpl = template.Must(template.Must(template.New("merchants").Funcs(phase2Funcs).Parse(merchantsHTML)).ParseFS(uiAssets, "ui/shared.html"))
-var merchantTmpl = template.Must(template.New("merchant").Funcs(merchantFuncs).Parse(merchantHTML))
+var merchantTmpl = template.Must(template.Must(template.New("merchant").Funcs(merchantFuncs).Parse(merchantHTML)).ParseFS(uiAssets, "ui/shared.html"))
 
 func registerMerchantRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("GET /merchants", a.handleMerchantPipeline)
@@ -134,9 +146,17 @@ func (a *app) handleMerchant(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := merchantTmpl.Execute(w, merchantPageData{Prospect: record.Prospect, Merchant: m, History: history}); err != nil {
+	visitState, err := a.store.GetVisitState(r.Context(), m.ProspectID)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	visits, err := a.store.VisitHistory(r.Context(), m.ProspectID, 50)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	renderPhase2(w, merchantTmpl, merchantPageData{Prospect: record.Prospect, Merchant: m, VisitState: visitState, History: history, Visits: visits})
 }
 
 func (a *app) handleMerchantUpdate(w http.ResponseWriter, r *http.Request) {
