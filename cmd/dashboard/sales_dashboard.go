@@ -17,7 +17,7 @@ type salesDashboardData struct {
 var salesDashboardTmpl = template.Must(template.New("sales-dashboard").Parse(salesDashboardHTML))
 
 func registerSalesDashboardRoutes(mux *http.ServeMux, a *app) {
-	mux.HandleFunc("GET /", a.handleSalesDashboard)
+	mux.HandleFunc("GET /sales", a.handleSalesDashboard)
 }
 
 func (a *app) handleSalesDashboard(w http.ResponseWriter, r *http.Request) {
