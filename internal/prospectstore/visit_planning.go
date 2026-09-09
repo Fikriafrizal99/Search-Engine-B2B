@@ -26,81 +26,81 @@ const (
 )
 
 type VisitState struct {
-	ProspectID    int64
-	VisitStatus   string
-	VisitCount    int
-	FirstVisitAt  string
-	LastVisitAt   string
-	NextRevisitAt string
-	LastResult    string
-	UpdatedAt     string
+	ProspectID	int64
+	VisitStatus	string
+	VisitCount	int
+	FirstVisitAt	string
+	LastVisitAt	string
+	NextRevisitAt	string
+	LastResult	string
+	UpdatedAt	string
 }
 
 type VisitHistoryEntry struct {
-	ID           int64
-	ProspectID   int64
-	VisitResult  string
-	PICName      string
-	Note         string
-	NextAction   string
-	NextActionAt string
-	VisitedAt    string
+	ID	int64
+	ProspectID	int64
+	VisitResult	string
+	PICName	string
+	Note	string
+	NextAction	string
+	NextActionAt	string
+	VisitedAt	string
 }
 
 type VisitResultInput struct {
-	ProspectID   int64
-	Channel      string
-	Result       string
-	PICName      string
-	Note         string
-	NextAction   string
-	NextActionAt time.Time
-	OccurredAt   time.Time
+	ProspectID	int64
+	Channel	string
+	Result	string
+	PICName	string
+	Note	string
+	NextAction	string
+	NextActionAt	time.Time
+	OccurredAt	time.Time
 }
 
 type CoverageProgress struct {
-	LocationScope   string
-	Status          string
-	Total           int
-	Unvisited       int
-	Planned         int
-	Visited         int
-	RevisitRequired int
-	Excluded        int
-	Routable        int
-	ProgressPercent float64
-	FirstScrapedAt  string
-	LastScrapedAt   string
+	LocationScope	string
+	Status	string
+	Total	int
+	Unvisited	int
+	Planned	int
+	Visited	int
+	RevisitRequired	int
+	Excluded	int
+	Routable	int
+	ProgressPercent	float64
+	FirstScrapedAt	string
+	LastScrapedAt	string
 }
 
 type DailyVisitPlanInput struct {
-	PlanDate      time.Time
-	LocationScope string
-	StartLat      float64
-	StartLon      float64
-	TargetCount   int
+	PlanDate	time.Time
+	LocationScope	string
+	StartLat	float64
+	StartLon	float64
+	TargetCount	int
 }
 
 type VisitPlan struct {
-	ID            int64
-	PlanDate      string
-	LocationScope string
-	StartLat      float64
-	StartLon      float64
-	TargetCount   int
-	Status        string
-	CreatedAt     string
-	Items         []VisitPlanItem
+	ID	int64
+	PlanDate	string
+	LocationScope	string
+	StartLat	float64
+	StartLon	float64
+	TargetCount	int
+	Status	string
+	CreatedAt	string
+	Items	[]VisitPlanItem
 }
 
 type VisitPlanItem struct {
-	ID                     int64
-	PlanID                 int64
-	Prospect                Prospect
-	Sequence                int
-	DistanceFromPreviousKM  float64
-	Status                  string
-	CreatedAt               string
+	ID	int64
+	PlanID	int64
+	Prospect	Prospect
+	Sequence	int
+	DistanceFromPreviousKM	float64
+	Status	string
+	CreatedAt	string
 }
 
 func (s *Store) ensureVisitPlanningSchema(ctx context.Context) error {
@@ -286,7 +286,7 @@ func (s *Store) CoverageProgress(ctx context.Context, locationScope string) (Cov
 }
 
 type routeCandidate struct {
-	Prospect Prospect
+	Prospect	Prospect
 }
 
 func (s *Store) CreateDailyVisitPlan(ctx context.Context, in DailyVisitPlanInput) (VisitPlan, error) {
@@ -533,8 +533,8 @@ func (s *Store) VisitHistory(ctx context.Context, prospectID int64, limit int) (
 }
 
 type routedCandidate struct {
-	Prospect               Prospect
-	DistanceFromPreviousKM float64
+	Prospect	Prospect
+	DistanceFromPreviousKM	float64
 }
 
 func nearestNeighbor(candidates []routeCandidate, startLat, startLon float64, limit int) []routedCandidate {
