@@ -50,7 +50,7 @@ func TestPhase3OperationalPagesRender(t *testing.T) {
 	scope := "Tebet Timur, Tebet, Kota Administrasi Jakarta Selatan, Daerah Khusus Ibukota Jakarta, Indonesia"
 	csvPath := filepath.Join(dir, "merchant.csv")
 	csv := "title,category,address,phone,website,latitude,longitude,rating,review_count,maps_url\n" +
-		"Warung Phase 3,Warung,Jl. Tebet Raya 1,081234567890,https://example.com,-6.230100,106.850100,4.6,120,https://maps.google.com/?q=-6.2301,106.8501\n"
+		"Warung Phase 3,Warung,Jl. Tebet Raya 1,081234567890,https://example.com,-6.230100,106.850100,4.6,120,https://maps.google.com/?q=-6.2301%2C106.8501\n"
 	if err := os.WriteFile(csvPath, []byte(csv), 0o600); err != nil {
 		t.Fatal(err)
 	}
