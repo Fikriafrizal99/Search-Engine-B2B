@@ -4,11 +4,11 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Buat Rute Besok</title>
 <style>
-:root{font-family:Inter,system-ui,-apple-system,sans-serif;color:#172033;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}.wrap{max-width:860px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}.top h1{margin:0;font-size:24px}.subtle{color:#718096;font-size:12px}.panel{background:#fff;border:1px solid #e8edf5;border-radius:14px;box-shadow:0 4px 18px rgba(18,38,63,.04);padding:16px;margin-bottom:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}label span{display:block;font-size:12px;color:#667085;margin-bottom:4px}input{width:100%;border:1px solid #d9e1ec;border-radius:10px;padding:8px 10px;min-height:42px;background:#fff;font:inherit}.btn,button{border:1px solid #d9e1ec;border-radius:10px;min-height:42px;padding:8px 14px;background:#fff;color:#172033;text-decoration:none;cursor:pointer;font:inherit}.primary{background:#172033;color:#fff;border-color:#172033}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.scope{padding:10px 12px;border-radius:10px;background:#f8fafc;font-size:13px;margin-bottom:14px}.note{padding:10px 12px;border-radius:10px;background:#fff8e7;font-size:13px;margin-top:10px}.gps{display:flex;gap:8px;align-items:end}.gps button{white-space:nowrap}@media(max-width:650px){.wrap{padding:12px}.top{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:1fr}.gps{align-items:stretch;flex-direction:column}.actions>*{flex:1}}
+:root{font-family:Inter,system-ui,-apple-system,sans-serif;color:#172033;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}.wrap{max-width:860px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}.top h1{margin:0;font-size:24px}.subtle{color:#718096;font-size:12px}.panel{background:#fff;border:1px solid #e8edf5;border-radius:14px;box-shadow:0 4px 18px rgba(18,38,63,.04);padding:16px;margin-bottom:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}label span{display:block;font-size:12px;color:#667085;margin-bottom:4px}input{width:100%;border:1px solid #d9e1ec;border-radius:10px;padding:8px 10px;min-height:42px;background:#fff;font:inherit}.btn,button{border:1px solid #d9e1ec;border-radius:10px;min-height:42px;padding:8px 14px;background:#fff;color:#172033;text-decoration:none;cursor:pointer;font:inherit}.primary{background:#172033;color:#fff;border-color:#172033}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.scope{padding:10px 12px;border-radius:10px;background:#f8fafc;font-size:13px;margin-bottom:14px}.note{padding:10px 12px;border-radius:10px;background:#eef7ff;font-size:13px;margin-top:10px;color:#31577d}.gps{display:flex;gap:8px;align-items:end}.gps button{white-space:nowrap}@media(max-width:650px){.wrap{padding:12px}.top{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:1fr}.gps{align-items:stretch;flex-direction:column}.actions>*{flex:1}}
 </style>
 </head>
 <body><div class="wrap">
-<div class="top"><div><h1>Buat Rute Besok</h1><div class="subtle">25 merchant otomatis diurutkan berdasarkan jarak dari titik mulai.</div></div><div><a class="btn" href="/areas">Area Planner</a></div></div>
+<div class="top"><div><h1>Buat Rute Kunjungan</h1><div class="subtle">Target default 25 merchant dengan urutan otomatis dari titik mulai.</div></div><div><a class="btn" href="/sales">Dashboard</a> <a class="btn" href="/areas">Area Planner</a></div></div>
 <div class="panel">
   <div class="scope"><b>Area:</b> {{if .Location}}{{.Location}}{{else}}Belum dipilih{{end}}</div>
   <form method="post" action="/visit-plans">
@@ -20,8 +20,8 @@
       <label><span>Longitude titik mulai</span><input id="start-lon" type="number" name="start_lon" step="any" placeholder="106.8..." required></label>
     </div>
     <div class="gps" style="margin-top:10px"><button id="gps-btn" type="button">Gunakan Lokasi Saya</button><div id="gps-status" class="subtle">Atau isi koordinat titik mulai secara manual.</div></div>
-    <div class="note">P0 memakai jarak garis lurus (Haversine) + nearest-next. Urutan yang sudah dibuat akan disimpan dan tidak diacak ulang saat halaman dibuka kembali.</div>
-    <div class="actions"><button class="primary" {{if not .Location}}disabled{{end}}>Buat Rute 25 Merchant</button><a class="btn" href="/areas">Kembali</a></div>
+    <div class="note">Jika service OSRM aktif, sistem memakai jarak dan durasi jalan nyata. Jika OSRM tidak tersedia, Bukupay otomatis fallback ke Haversine agar pembuatan rute tetap berjalan. Rute yang sudah dibuat disimpan dan tidak diacak ulang saat halaman dibuka kembali.</div>
+    <div class="actions"><button class="primary" {{if not .Location}}disabled{{end}}>Buat Rute Merchant</button><a class="btn" href="/areas">Kembali</a></div>
   </form>
 </div>
 </div>
