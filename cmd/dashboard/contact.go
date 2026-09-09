@@ -34,6 +34,7 @@ var contactFuncs = template.FuncMap{
 	"contactTime":   contactTime,
 	"statusTone":    dashboardStatusTone,
 	"durationLabel": durationLabel,
+	"add":           func(a, b int) int { return a + b },
 	"shortArea": func(area string) string {
 		parts := strings.Split(area, ",")
 		if len(parts) > 2 {
