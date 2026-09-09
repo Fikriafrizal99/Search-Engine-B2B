@@ -1,15 +1,17 @@
+name: bukupay-sales
+
 services:
-  search-engine-b2b:
+  bukupay-sales:
     build:
       context: .
       dockerfile: Dockerfile
-    image: search-engine-b2b:local
-    container_name: search-engine-b2b
+    image: bukupay-sales:local
+    container_name: bukupay-sales
     restart: unless-stopped
     init: true
     shm_size: "1gb"
     ports:
-      - "8081:8081"
+      - "8082:8082"
     environment:
       OSRM_URL: ${OSRM_URL:-http://osrm:5000}
     volumes:
