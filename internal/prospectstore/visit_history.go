@@ -33,16 +33,18 @@ func (s *Store) RecordVisitResult(ctx context.Context, in VisitResultInput) (Vis
 	switch result {
 	case "owner_not_found":
 		status = VisitRevisitRequired
-		if next.IsZero() {
-			next = visitOccurredAt(in).Add(3 * 24 * time.Hour)
+		policyNext := visitOccurredAt(in).Add(3 * 24 * time.Hour)
+		if next.IsZero() || next.Before(policyNext) {
+			next = policyNext
 		}
 		if nextAction == "" {
 			nextAction = "Kunjungi kembali saat owner/PIC tersedia"
 		}
 	case "store_closed":
 		status = VisitRevisitRequired
-		if next.IsZero() {
-			next = visitOccurredAt(in).Add(7 * 24 * time.Hour)
+		policyNext := visitOccurredAt(in).Add(7 * 24 * time.Hour)
+		if next.IsZero() || next.Before(policyNext) {
+			next = policyNext
 		}
 		if nextAction == "" {
 			nextAction = "Kunjungi kembali saat toko buka"
@@ -73,6 +75,14 @@ func (s *Store) RecordVisitResult(ctx context.Context, in VisitResultInput) (Vis
 	if _, err := tx.ExecContext(ctx, `INSERT INTO merchant_visit_history (prospect_id,visit_result,pic_name,note,next_action,next_action_at,visited_at)
 		VALUES (?,?,?,?,?,?,?)`, in.ProspectID, result, strings.TrimSpace(in.PICName), strings.TrimSpace(in.Note), nextAction, nextValue, nowValue); err != nil {
 		return VisitState{}, err
+	}
+	if status == VisitRevisitRequired {
+		if _, err := tx.ExecContext(ctx, `UPDATE lead_execution SET next_follow_up_at=?,updated_at=? WHERE prospect_id=?`, nextValue, nowValue, in.ProspectID); err != nil {
+			return VisitState{}, err
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE contact_events SET next_follow_up_at=? WHERE id=(SELECT id FROM contact_events WHERE prospect_id=? ORDER BY id DESC LIMIT 1)`, nextValue, in.ProspectID); err != nil {
+			return VisitState{}, err
+		}
 	}
 	itemStatus := VisitVisited
 	if status == VisitRevisitRequired {

@@ -2,6 +2,8 @@
 
 Dokumen ini adalah baseline kerja untuk branch `feat/bukupay-sales`.
 
+**Status P0: COMPLETE** — fondasi data, coverage desa, visit history, daily planning 25 merchant, dan validasi CI sudah selesai.
+
 ## 1. Tujuan operasional
 
 Aplikasi dipakai sales Bukupay untuk:
@@ -184,6 +186,8 @@ visit_status = revisit_required
 revisit default = +7 hari
 ```
 
+Kebijakan revisit ini juga diselaraskan ke `lead_execution` dan event kontak terakhir agar queue follow-up tidak berbeda dengan coverage state.
+
 ### Visit selesai / sudah diklasifikasikan
 
 Hasil seperti `visited`, `presented`, `interested`, `follow_up`, `registered`, `installed`, `active`, `already_soundbox`, dan `not_interested` menandai coverage merchant sebagai `visited`.
@@ -244,6 +248,7 @@ P0 policy:
 
 - [x] Owner tidak ada -> revisit +3 hari secara default.
 - [x] Toko tutup -> revisit +7 hari secara default.
+- [x] Queue follow-up diselaraskan dengan revisit policy.
 - [x] Kunjungan memperbarui state tanpa menghapus history.
 - [x] Re-scrape tidak mereset visit state.
 
@@ -251,7 +256,7 @@ P0 policy:
 
 - [x] Unit test untuk urutan jarak.
 - [x] Unit test untuk revisit dan re-scrape preservation.
-- [ ] GitHub Actions CI hijau untuk commit P0.
+- [x] GitHub Actions CI hijau untuk commit P0.
 
 ## 11. P1 setelah P0
 
