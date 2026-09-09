@@ -92,7 +92,12 @@ func merchantFilterURL(f prospectstore.MerchantListFilter, page int) string {
 	return "/merchants?" + q.Encode()
 }
 func registerPhase2Assets(mux *http.ServeMux) {
-	for _, asset := range []struct{ name, mime string }{{"phase2.css", "text/css"}, {"scrape-mode.css", "text/css"}, {"area-planner.js", "text/javascript"}} {
+	for _, asset := range []struct{ name, mime string }{
+		{"phase2.css", "text/css"},
+		{"phase3.css", "text/css"},
+		{"scrape-mode.css", "text/css"},
+		{"area-planner.js", "text/javascript"},
+	} {
 		mux.HandleFunc("GET /assets/"+asset.name, func(w http.ResponseWriter, r *http.Request) {
 			data, err := uiAssets.ReadFile("ui/" + asset.name)
 			if err != nil {
