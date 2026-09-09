@@ -31,9 +31,11 @@ func (s *Store) SetRoadRouter(router RoadRouter) {
 
 func (s *Store) roadRouter() RoadRouter {
 	value, ok := storeRoadRouters.Load(s)
-	if !ok {
-		return nil
+	if ok {
+		router, _ := value.(RoadRouter)
+		if router != nil {
+			return router
+		}
 	}
-	router, _ := value.(RoadRouter)
-	return router
+	return defaultRoadRouter()
 }
