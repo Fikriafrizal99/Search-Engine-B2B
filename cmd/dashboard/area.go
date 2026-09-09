@@ -19,6 +19,7 @@ var areaTmpl = template.Must(template.New("area").Parse(areaHTML))
 func registerAreaRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("GET /areas", a.handleAreaPlanner)
 	mux.HandleFunc("GET /api/coverage", a.handleCoverageSnapshot)
+	registerVisitPlanRoutes(mux, a)
 }
 
 func (a *app) handleAreaPlanner(w http.ResponseWriter, r *http.Request) {
