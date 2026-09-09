@@ -18,22 +18,32 @@ type contactPageData struct {
 	Lead     prospectstore.ContactLead
 	Stats    prospectstore.ExecutionStats
 	Pipeline prospectstore.BukupayPipelineStats
+	Summary  prospectstore.SalesDashboardSummary
 	Nav      prospectstore.ContactNavigation
 	Mode     string
 	Empty    bool
 }
 
 var contactFuncs = template.FuncMap{
-	"wa":           waNumber,
-	"waIntro":      waIntroURL,
-	"waFollowUp":   waFollowUpURL,
-	"execLabel":    executionLabel,
-	"resultLabel":  contactResultLabel,
-	"channelLabel": contactChannelLabel,
-	"contactTime":  contactTime,
+	"wa":            waNumber,
+	"waIntro":       waIntroURL,
+	"waFollowUp":    waFollowUpURL,
+	"execLabel":     executionLabel,
+	"resultLabel":   contactResultLabel,
+	"channelLabel":  contactChannelLabel,
+	"contactTime":   contactTime,
+	"statusTone":    dashboardStatusTone,
+	"durationLabel": durationLabel,
+	"shortArea": func(area string) string {
+		parts := strings.Split(area, ",")
+		if len(parts) > 2 {
+			parts = parts[:2]
+		}
+		return strings.Join(parts, ",")
+	},
 }
 
-var contactTmpl = template.Must(template.New("contact").Funcs(contactFuncs).Parse(contactHTML))
+var contactTmpl = template.Must(template.Must(template.New("contact").Funcs(contactFuncs).Parse(contactHTML)).ParseFS(uiAssets, "ui/shared.html"))
 
 var jakartaLocation = func() *time.Location {
 	loc, err := time.LoadLocation("Asia/Jakarta")
@@ -73,6 +83,11 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	summary, err := a.store.SalesDashboardSummary(r.Context(), now, jakartaLocation)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	var lead prospectstore.ContactLead
 	if idRaw := strings.TrimSpace(r.URL.Query().Get("id")); idRaw != "" {
 		id, err := strconv.ParseInt(idRaw, 10, 64)
@@ -88,9 +103,7 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 	} else {
 		lead, err = a.store.NextContact(r.Context(), mode, now)
 		if err == sql.ErrNoRows {
-			if err := contactTmpl.Execute(w, contactPageData{Stats: stats, Pipeline: pipeline, Mode: mode, Empty: true}); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
+			renderPhase2(w, contactTmpl, contactPageData{Stats: stats, Pipeline: pipeline, Summary: summary, Mode: mode, Empty: true})
 			return
 		}
 		if err != nil {
@@ -103,9 +116,7 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := contactTmpl.Execute(w, contactPageData{Lead: lead, Stats: stats, Pipeline: pipeline, Nav: nav, Mode: mode}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	renderPhase2(w, contactTmpl, contactPageData{Lead: lead, Stats: stats, Pipeline: pipeline, Summary: summary, Nav: nav, Mode: mode})
 }
 
 func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
@@ -139,8 +150,6 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 	note := strings.TrimSpace(r.FormValue("note"))
 	channel := strings.TrimSpace(strings.ToLower(r.FormValue("channel")))
 
-	// Resolve Bukupay field revisit policy before lead_execution logs the event,
-	// so execution, visit coverage, and history all receive the same due time.
 	if next.IsZero() {
 		now := time.Now()
 		switch result {
@@ -172,8 +181,6 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Pure coverage outcomes stay in visit/revisit state. Sales outcomes are
-	// synchronized to the Bukupay acquisition pipeline.
 	if result != "visited" && result != "owner_not_found" && result != "store_closed" {
 		if merchantStatus, ok := prospectstore.MerchantStatusFromContactResult(result); ok {
 			if _, err := a.store.TouchMerchantStatus(r.Context(), id, merchantStatus, owner, note, effectiveNext); err != nil {
