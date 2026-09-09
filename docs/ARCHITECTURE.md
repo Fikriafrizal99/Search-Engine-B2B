@@ -1,14 +1,28 @@
-# Architecture
+# Architecture — Bukupay Merchant Hunter
 
-`Search-Engine-B2B` is a standalone B2B prospecting application. It does not share the kost database or kost enrichment schema.
+`feat/bukupay-sales` memisahkan merchant acquisition Bukupay dari workflow lama.
 
-Flow:
+## Flow
 
-1. Cascading region selector resolves Province -> Regency/City -> District -> Village/Kelurahan through a public administrative-region API, cached locally.
-2. The B2B preset combines the selected location with business-category queries.
-3. The external `gosom/google-maps-scraper` executable collects public Google Maps listings.
-4. The collector filters competitor/finance listings, requires public business phone data, and deduplicates results.
-5. Clean results are imported into `data/prospects.db`.
-6. The web dashboard manages B2B-only profile fields, contact status, QC, and exports CSV/XLSX.
+1. Region selector: Province -> Regency/City -> District -> Village/Kelurahan.
+2. Preset `bukupay-merchants` atau custom keyword membentuk query Google Maps.
+3. `gosom/google-maps-scraper` mengumpulkan listing bisnis publik.
+4. Collector melakukan filtering dan deduplication. Nomor telepon tidak wajib karena merchant dapat diproses lewat canvassing lapangan.
+5. Listing bersih diimpor ke `data/prospects.db`.
+6. Visit / Prospecting Session mencatat aktivitas sales.
+7. Merchant yang relevan masuk ke `merchant_sales` dan Merchant Pipeline.
+8. Pipeline melacak presentasi, minat, registrasi, instalasi Soundbox, dan aktivasi merchant.
 
-No fields for boarding-house occupant gender, rent price, furnishing, or kost facilities exist in this database.
+## Separation
+
+Discovery data dan sales execution dipisahkan:
+
+```text
+prospects / prospect_profiles
+        |
+        +-> lead_execution / contact_events
+        |
+        +-> merchant_sales / merchant_events
+```
+
+`prospects` menyimpan listing publik. `merchant_sales` hanya menyimpan fakta hasil observasi atau komunikasi sales seperti QRIS, Soundbox, PIC, traffic, interest, serta status registrasi/instalasi/aktivasi.

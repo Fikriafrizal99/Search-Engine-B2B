@@ -9,21 +9,20 @@ import (
 )
 
 const (
-	ExecutionNew           = "new"
-	ExecutionContacted     = "contacted"
-	ExecutionRetry         = "retry"
-	ExecutionFollowUp      = "follow_up"
-	ExecutionInterested    = "interested"
-	ExecutionNotInterested = "not_interested"
-	ExecutionWrongNumber   = "wrong_number"
-	ExecutionUnreachable   = "unreachable"
-	ExecutionQualified     = "qualified"
-	ExecutionSubmitted     = "submitted"
-	ExecutionProcessing    = "processing"
-	ExecutionApproved      = "approved"
-	ExecutionRejected      = "rejected"
-	ExecutionCancelled     = "cancelled"
-	ExecutionDisbursed     = "disbursed"
+	ExecutionNew             = "new"
+	ExecutionContacted       = "contacted"
+	ExecutionRetry           = "retry"
+	ExecutionFollowUp        = "follow_up"
+	ExecutionVisited         = "visited"
+	ExecutionPresented       = "presented"
+	ExecutionInterested      = "interested"
+	ExecutionRegistered      = "registered"
+	ExecutionInstalled       = "installed"
+	ExecutionActive          = "active"
+	ExecutionNotInterested   = "not_interested"
+	ExecutionAlreadySoundbox = "already_soundbox"
+	ExecutionWrongNumber     = "wrong_number"
+	ExecutionUnreachable     = "unreachable"
 )
 
 type Execution struct {
@@ -58,8 +57,9 @@ type ExecutionStats struct {
 	FollowUpToday int
 	Overdue       int
 	Interested    int
-	Qualified     int
-	InProcess     int
+	Registered    int
+	Installed     int
+	Active        int
 }
 
 type ContactInput struct {
@@ -179,12 +179,12 @@ func (s *Store) NextContact(ctx context.Context, mode string, now time.Time) (Co
 	var args []any
 	switch mode {
 	case "new":
-		condition = `TRIM(p.phone)<>'' AND COALESCE(le.status,'new')='new'`
+		condition = `COALESCE(le.status,'new')='new'`
 	case "follow_up":
-		condition = `TRIM(p.phone)<>'' AND COALESCE(le.status,'new') IN ('retry','follow_up') AND le.next_follow_up_at<>'' AND le.next_follow_up_at<=?`
+		condition = `COALESCE(le.status,'new') IN ('retry','follow_up') AND le.next_follow_up_at<>'' AND le.next_follow_up_at<=?`
 		args = append(args, nowUTC)
 	case "all":
-		condition = `TRIM(p.phone)<>'' AND (COALESCE(le.status,'new')='new' OR (COALESCE(le.status,'new') IN ('retry','follow_up') AND le.next_follow_up_at<>'' AND le.next_follow_up_at<=?))`
+		condition = `(COALESCE(le.status,'new')='new' OR (COALESCE(le.status,'new') IN ('retry','follow_up') AND le.next_follow_up_at<>'' AND le.next_follow_up_at<=?))`
 		args = append(args, nowUTC)
 	default:
 		return ContactLead{}, fmt.Errorf("invalid contact mode %q", mode)
@@ -221,14 +221,15 @@ func (s *Store) ExecutionStats(ctx context.Context, now time.Time, loc *time.Loc
 
 	var st ExecutionStats
 	err := s.db.QueryRowContext(ctx, `SELECT
-		COALESCE(SUM(CASE WHEN TRIM(p.phone)<>'' AND COALESCE(le.status,'new')='new' THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN COALESCE(le.status,'new')='new' THEN 1 ELSE 0 END),0),
 		COALESCE(SUM(CASE WHEN le.status IN ('retry','follow_up') AND le.next_follow_up_at>=? AND le.next_follow_up_at<? THEN 1 ELSE 0 END),0),
 		COALESCE(SUM(CASE WHEN le.status IN ('retry','follow_up') AND le.next_follow_up_at<>'' AND le.next_follow_up_at<? THEN 1 ELSE 0 END),0),
 		COALESCE(SUM(CASE WHEN le.status='interested' THEN 1 ELSE 0 END),0),
-		COALESCE(SUM(CASE WHEN le.status='qualified' THEN 1 ELSE 0 END),0),
-		COALESCE(SUM(CASE WHEN le.status IN ('submitted','processing','approved') THEN 1 ELSE 0 END),0)
+		COALESCE(SUM(CASE WHEN le.status='registered' THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN le.status='installed' THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN le.status='active' THEN 1 ELSE 0 END),0)
 		FROM prospects p LEFT JOIN lead_execution le ON le.prospect_id=p.id`, start, end, nowUTC).Scan(
-		&st.New, &st.FollowUpToday, &st.Overdue, &st.Interested, &st.Qualified, &st.InProcess,
+		&st.New, &st.FollowUpToday, &st.Overdue, &st.Interested, &st.Registered, &st.Installed, &st.Active,
 	)
 	return st, err
 }
@@ -241,7 +242,7 @@ func (s *Store) LogContact(ctx context.Context, in ContactInput) (Execution, err
 		return Execution{}, fmt.Errorf("prospect id is required")
 	}
 	channel := strings.TrimSpace(strings.ToLower(in.Channel))
-	if channel != "call" && channel != "whatsapp" && channel != "manual" {
+	if channel != "call" && channel != "whatsapp" && channel != "manual" && channel != "visit" {
 		return Execution{}, fmt.Errorf("invalid contact channel")
 	}
 	result := strings.TrimSpace(strings.ToLower(in.Result))
@@ -255,7 +256,7 @@ func (s *Store) LogContact(ctx context.Context, in ContactInput) (Execution, err
 	if result == "follow_up" && next.IsZero() {
 		return Execution{}, fmt.Errorf("next follow-up time is required")
 	}
-	if (result == "no_answer" || result == "busy") && next.IsZero() {
+	if (result == "no_answer" || result == "busy" || result == "store_closed" || result == "owner_not_found") && next.IsZero() {
 		next = now.Add(24 * time.Hour)
 	}
 	if result == "requested_wa" && next.IsZero() {
@@ -292,27 +293,47 @@ func (s *Store) LogContact(ctx context.Context, in ContactInput) (Execution, err
 
 func executionFromResult(result string) (status, nextAction string, err error) {
 	switch result {
-	case "no_answer":
-		return ExecutionRetry, "Retry contact", nil
-	case "busy":
-		return ExecutionRetry, "Retry contact", nil
+	case "no_answer", "busy":
+		return ExecutionRetry, "Hubungi kembali", nil
+	case "store_closed":
+		return ExecutionFollowUp, "Kunjungi kembali saat toko buka", nil
+	case "owner_not_found":
+		return ExecutionFollowUp, "Kunjungi kembali saat owner/PIC ada", nil
 	case "requested_wa":
-		return ExecutionFollowUp, "Send WhatsApp follow-up", nil
+		return ExecutionFollowUp, "Kirim informasi Bukupay via WhatsApp", nil
 	case "wa_sent":
-		return ExecutionContacted, "Wait for response", nil
+		return ExecutionContacted, "Tunggu respons merchant", nil
+	case "visited":
+		return ExecutionVisited, "Temui owner/PIC dan presentasikan Soundbox QRIS", nil
+	case "presented":
+		return ExecutionPresented, "Konfirmasi minat merchant", nil
 	case "follow_up":
-		return ExecutionFollowUp, "Follow up as scheduled", nil
+		return ExecutionFollowUp, "Follow up sesuai jadwal", nil
 	case "interested":
-		return ExecutionInterested, "Qualify interest", nil
+		return ExecutionInterested, "Lanjutkan proses registrasi merchant", nil
+	case "registered":
+		return ExecutionRegistered, "Koordinasikan pemasangan Soundbox", nil
+	case "installed":
+		return ExecutionInstalled, "Pastikan Soundbox aktif dan merchant paham penggunaan", nil
+	case "active":
+		return ExecutionActive, "Merchant aktif", nil
+	case "already_soundbox":
+		return ExecutionAlreadySoundbox, "Tidak perlu prospek Soundbox saat ini", nil
 	case "not_interested":
-		return ExecutionNotInterested, "No further action", nil
+		return ExecutionNotInterested, "Tidak ada tindak lanjut", nil
 	case "wrong_number":
-		return ExecutionWrongNumber, "Verify or exclude number", nil
+		return ExecutionWrongNumber, "Gunakan kunjungan atau verifikasi nomor", nil
 	case "unreachable":
-		return ExecutionUnreachable, "No further action", nil
-	case "qualified":
-		return ExecutionQualified, "Prepare submission", nil
+		return ExecutionUnreachable, "Verifikasi merchant di lapangan", nil
 	default:
 		return "", "", fmt.Errorf("invalid contact result %q", result)
 	}
+}
+
+func syncExecutionDirectTx(ctx context.Context, tx *sql.Tx, prospectID int64, status, nextAction, nextFollowUp, now string) error {
+	_, err := tx.ExecContext(ctx, `INSERT INTO lead_execution (prospect_id,status,next_action,next_follow_up_at,updated_at) VALUES (?,?,?,?,?)
+		ON CONFLICT(prospect_id) DO UPDATE SET status=excluded.status,next_action=excluded.next_action,
+			next_follow_up_at=CASE WHEN excluded.next_follow_up_at<>'' THEN excluded.next_follow_up_at ELSE lead_execution.next_follow_up_at END,
+			updated_at=excluded.updated_at`, prospectID, status, nextAction, nextFollowUp, now)
+	return err
 }

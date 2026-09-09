@@ -45,7 +45,7 @@ var jakartaLocation = func() *time.Location {
 func registerContactRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("GET /contact", a.handleContactSession)
 	mux.HandleFunc("POST /contact/{id}/result", a.handleContactResult)
-	registerPipelineRoutes(mux, a)
+	registerMerchantRoutes(mux, a)
 }
 
 func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +53,6 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	mode := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("mode")))
 	if mode == "" {
 		mode = "all"
@@ -62,13 +61,11 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid contact mode", http.StatusBadRequest)
 		return
 	}
-
 	stats, err := a.store.ExecutionStats(r.Context(), time.Now(), jakartaLocation)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	var lead prospectstore.ContactLead
 	if idRaw := strings.TrimSpace(r.URL.Query().Get("id")); idRaw != "" {
 		id, err := strconv.ParseInt(idRaw, 10, 64)
@@ -94,13 +91,11 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	nav, err := a.store.ContactNavigation(r.Context(), lead.Record.Prospect.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	if err := contactTmpl.Execute(w, contactPageData{Lead: lead, Stats: stats, Nav: nav, Mode: mode}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -120,12 +115,10 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	mode := strings.TrimSpace(strings.ToLower(r.FormValue("mode")))
 	if mode != "new" && mode != "follow_up" {
 		mode = "all"
 	}
-
 	var next time.Time
 	if raw := strings.TrimSpace(r.FormValue("next_follow_up")); raw != "" {
 		next, err = time.ParseInLocation("2006-01-02T15:04", raw, jakartaLocation)
@@ -134,32 +127,22 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	result := strings.TrimSpace(strings.ToLower(r.FormValue("result")))
+	owner := strings.TrimSpace(r.FormValue("owner"))
+	note := strings.TrimSpace(r.FormValue("note"))
 	_, err = a.store.LogContact(r.Context(), prospectstore.ContactInput{
-		ProspectID:     id,
-		Channel:        r.FormValue("channel"),
-		Result:         result,
-		Note:           r.FormValue("note"),
-		NextFollowUpAt: next,
-		Owner:          strings.TrimSpace(r.FormValue("owner")),
+		ProspectID: id, Channel: r.FormValue("channel"), Result: result, Note: note, NextFollowUpAt: next, Owner: owner,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	if result == "interested" || result == "qualified" {
-		status := prospectstore.OpportunityQualifying
-		if result == "qualified" {
-			status = prospectstore.OpportunityQualified
-		}
-		if _, err := a.store.EnsureOpportunity(r.Context(), id, status); err != nil {
+	if merchantStatus, ok := prospectstore.MerchantStatusFromContactResult(result); ok {
+		if _, err := a.store.TouchMerchantStatus(r.Context(), id, merchantStatus, owner, note, next); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
-
 	http.Redirect(w, r, "/contact?mode="+url.QueryEscape(mode), http.StatusSeeOther)
 }
 
@@ -168,7 +151,7 @@ func waIntroURL(phone, title string) string {
 	if number == "" {
 		return "#"
 	}
-	message := fmt.Sprintf("Halo Bapak/Ibu, saya Fikri. Saya menghubungi %s. Saya ingin menyampaikan informasi layanan pembiayaan kendaraan dari perusahaan multifinance. Jika berkenan, saya bisa kirim informasi singkat di sini. Terima kasih.", strings.TrimSpace(title))
+	message := fmt.Sprintf("Halo Bapak/Ibu, saya Fikri dari Bukupay. Saya ingin memperkenalkan Soundbox QRIS untuk %s, perangkat yang membantu merchant mendengar notifikasi pembayaran QRIS secara langsung. Jika berkenan, saya bisa jelaskan singkat manfaat dan prosesnya. Terima kasih.", strings.TrimSpace(title))
 	return "https://wa.me/" + number + "?text=" + url.QueryEscape(message)
 }
 
@@ -177,31 +160,31 @@ func waFollowUpURL(phone, title string) string {
 	if number == "" {
 		return "#"
 	}
-	message := fmt.Sprintf("Halo Bapak/Ibu, saya Fikri. Menindaklanjuti komunikasi sebelumnya dengan %s, saya menghubungi kembali sesuai pembicaraan kita. Jika waktunya sesuai, saya siap bantu jelaskan informasinya. Terima kasih.", strings.TrimSpace(title))
+	message := fmt.Sprintf("Halo Bapak/Ibu, saya Fikri dari Bukupay. Saya menindaklanjuti pembicaraan sebelumnya dengan %s mengenai Soundbox QRIS. Jika waktunya sesuai, saya siap bantu lanjutkan informasi atau proses berikutnya. Terima kasih.", strings.TrimSpace(title))
 	return "https://wa.me/" + number + "?text=" + url.QueryEscape(message)
 }
 
 func executionLabel(v string) string {
 	return labels(map[string]string{
-		"new": "New", "contacted": "Contacted", "retry": "Retry", "follow_up": "Follow Up",
-		"interested": "Interested", "not_interested": "Tidak Tertarik", "wrong_number": "Nomor Salah",
-		"unreachable": "Tidak Terhubung", "qualified": "Qualified", "submitted": "Submitted",
-		"processing": "Processing", "approved": "Approved", "rejected": "Rejected",
-		"cancelled": "Cancelled", "disbursed": "Disbursed",
-	}, v, "New")
+		"new": "Belum dikunjungi", "contacted": "Sudah dihubungi", "retry": "Coba lagi", "follow_up": "Follow Up",
+		"visited": "Sudah dikunjungi", "presented": "Sudah presentasi", "interested": "Tertarik", "registered": "Terdaftar",
+		"installed": "Terpasang", "active": "Aktif", "not_interested": "Tidak tertarik", "already_soundbox": "Sudah punya Soundbox",
+		"wrong_number": "Nomor salah", "unreachable": "Tidak terhubung",
+	}, v, "Belum dikunjungi")
 }
 
 func contactResultLabel(v string) string {
 	return labels(map[string]string{
-		"no_answer": "Tidak diangkat", "busy": "Sibuk / hubungi lagi", "requested_wa": "Minta WhatsApp",
-		"wa_sent": "WhatsApp terkirim", "follow_up": "Jadwalkan follow-up", "interested": "Tertarik",
-		"not_interested": "Tidak tertarik", "wrong_number": "Nomor salah", "unreachable": "Tidak terhubung",
-		"qualified": "Qualified",
+		"no_answer": "Tidak diangkat", "busy": "Sibuk / hubungi lagi", "store_closed": "Toko tutup",
+		"owner_not_found": "Owner/PIC tidak ada", "requested_wa": "Minta WhatsApp", "wa_sent": "WhatsApp terkirim",
+		"visited": "Sudah dikunjungi", "presented": "Sudah presentasi", "follow_up": "Jadwalkan follow-up",
+		"interested": "Tertarik", "registered": "Sudah registrasi", "installed": "Soundbox terpasang", "active": "Merchant aktif",
+		"already_soundbox": "Sudah punya Soundbox", "not_interested": "Tidak tertarik", "wrong_number": "Nomor salah", "unreachable": "Tidak terhubung",
 	}, v, v)
 }
 
 func contactChannelLabel(v string) string {
-	return labels(map[string]string{"call": "Call", "whatsapp": "WhatsApp", "manual": "Manual"}, v, v)
+	return labels(map[string]string{"visit": "Kunjungan", "call": "Call", "whatsapp": "WhatsApp", "manual": "Manual"}, v, v)
 }
 
 func contactTime(v string) string {

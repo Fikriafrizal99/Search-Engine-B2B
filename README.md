@@ -1,134 +1,132 @@
-# Search Engine B2B
+# Bukupay Merchant Hunter
 
-Standalone search engine and prospect database for **public B2B listings** from Google Maps, intentionally separated from the kost/boarding-house project.
+Field-sales prospecting dan merchant acquisition workspace untuk membantu penjualan **Soundbox QRIS Bukupay** ke warung, toko FMCG, F&B, dan merchant lokal lainnya.
 
-## What is included
+Branch pengembangan: `feat/bukupay-sales`.
 
-- Java + Sumatra geographic scope
-- Cascading location selector: Province -> Regency/City -> District -> Village/Kelurahan
-- Public region API with local cache
-- **Free-form custom queries**: enter any business category, one or many at once
-- 32 recommended business-category queries as an optional starter preset
-- Custom-only mode or custom + default mode
-- Google Maps collection through the upstream `gosom/google-maps-scraper` executable
-- Filtering and deduplication
-- SQLite prospect database (`data/prospects.db`)
-- B2B dashboard
-- **Contact Session / Action Queue** for sales execution
-- Call and WhatsApp shortcuts with editable pre-filled messages
-- Contact result logging and contact history
-- Follow-up scheduling and retry queue
-- CSV and XLSX export
-- Manual CSV import
-- GitHub Actions CI
+## Tujuan
 
-## Query model
-
-The 32 default queries are **not a limit**. They are only recommendations. From the dashboard you can type up to 100 custom business keywords per collection run, separated by newline, comma, or semicolon.
-
-Examples:
+Aplikasi membantu alur kerja sales dari discovery sampai merchant aktif:
 
 ```text
-agen pupuk
-toko alat berat
-bakery
-dealer mobil bekas
-distributor minuman
+Google Maps -> Prospect -> Visit Session -> Follow Up -> Registration -> Installation -> Active
 ```
 
-The selected location is appended automatically. For example:
+## Fitur utama
+
+- Google Maps merchant discovery melalui `gosom/google-maps-scraper`
+- Scope Jawa + Sumatra
+- Filter lokasi berjenjang: Provinsi -> Kabupaten/Kota -> Kecamatan -> Desa/Kelurahan
+- Custom query hingga 100 keyword per collect
+- Preset `bukupay-merchants` untuk warung, FMCG, F&B, dan usaha lokal
+- Merchant tanpa nomor telepon tetap disimpan untuk canvassing lapangan
+- SQLite prospect database
+- Visit / Prospecting Session
+- Google Maps, Call, dan WhatsApp shortcut
+- Activity history dan follow-up scheduling
+- Merchant Pipeline
+- Data QRIS dan Soundbox
+- Registrasi, instalasi, dan aktivasi tracking
+- CSV/XLSX export
+- Docker runtime dan GitHub Actions CI
+
+## Merchant pipeline
+
+Status utama:
 
 ```text
-agen pupuk + Cugenang, Kabupaten Cianjur, Jawa Barat, Indonesia
+TO VISIT
+  -> VISITED
+  -> PRESENTED
+  -> INTERESTED
+  -> REGISTRATION
+  -> REGISTERED
+  -> INSTALLATION
+  -> INSTALLED
+  -> ACTIVE
 ```
 
-becomes a Google Maps search query for that exact administrative scope.
+Status tambahan:
 
-Two modes are available:
+- Follow Up
+- Owner/PIC tidak ada
+- Tidak tertarik
+- Sudah punya Soundbox
+- Toko tutup
+- Invalid lead
 
-- **Custom only**: disable the default-query checkbox.
-- **Custom + defaults**: keep the checkbox enabled and your custom queries are added to the 32 recommendations.
+## Data merchant
 
-If the custom-query box is empty, the normal 32-query preset is used.
+Prospect dari listing publik:
 
-## Sales execution model
-
-The search engine and the sales workflow are separated intentionally:
-
-```text
-Google Maps -> Prospect Database -> Contact Session -> Follow-up -> Interested -> Qualified
-```
-
-Open the Contact Session from the dashboard or directly at:
-
-```text
-http://localhost:8080/contact
-```
-
-The Action Queue supports:
-
-- New leads with a public business phone number
-- Follow-ups due today
-- Overdue follow-ups
-- Interested leads
-- Qualified leads
-- Cases already in process
-
-For each lead the session shows the business profile and provides:
-
-- `Call` using the device `tel:` handler
-- `WhatsApp Intro` with a pre-filled introductory message
-- `WA Follow-up` with a pre-filled follow-up message
-- Result selection: no answer, busy, requested WhatsApp, WA sent, follow-up, interested, qualified, not interested, wrong number, or unreachable
-- Optional PIC/owner
-- Notes
-- Next follow-up date/time in WIB
-- Complete contact history
-
-After saving a result, the session automatically advances to the next actionable lead. `No answer` and `Busy` are placed into retry with a default follow-up 24 hours later when no schedule is supplied. A manually selected `Follow-up` requires a scheduled date/time.
-
-WhatsApp messages are **not sent automatically**. The system only opens WhatsApp with editable text already filled in; the operator reviews and presses Send.
-
-## Data model
-
-The database keeps public Maps listing data separate from execution data.
-
-Prospect/listing data includes:
-
-- Business name
-- Category
-- Address and selected location scope
-- Public business phone
+- Nama usaha
+- Kategori
+- Alamat
+- Lokasi administratif
+- Nomor telepon publik jika tersedia
 - Website
-- Rating/review count
-- Google Maps URL and IDs
+- Rating/review
+- Google Maps URL
+- Koordinat
 
-Execution data includes:
+Data hasil kunjungan/komunikasi:
 
-- Status
-- Last contact
-- Last result
-- Next follow-up
-- Next action
-- PIC/owner
-- Contact history and notes
+- Jenis merchant
+- Nama dan peran PIC/owner
+- Sudah menggunakan QRIS atau belum
+- Provider QRIS saat ini
+- Sudah mempunyai Soundbox atau belum
+- Traffic level
+- Transaction level
+- Interest level
+- Status registrasi
+- Status instalasi
+- Status aktivasi
+- Next action dan due date
+- Catatan lapangan
 
-There are **no kost-specific fields** in this repository.
+Traffic, transaksi, QRIS, Soundbox, dan ketertarikan merchant dicatat dari observasi atau komunikasi nyata. Aplikasi tidak menebaknya dari Google Maps.
 
-## Setup
+## Default prospect keywords
 
-Requirements:
+Preset `config/presets/bukupay-merchants.json` mencakup antara lain:
+
+```text
+warung
+warung sembako
+toko kelontong
+toko sembako
+grosir sembako
+minimarket
+rumah makan
+warteg
+restoran
+cafe
+coffee shop
+bakery
+apotek
+laundry
+barbershop
+bengkel motor
+counter pulsa
+```
+
+Custom query tetap dapat digunakan dari dashboard.
+
+## Build
+
+Requirement:
 
 - Go 1.22+
-- A built `gosom/google-maps-scraper` executable available locally
+- executable `google_maps_scraper`
 
 ```bash
 go mod tidy
-make test
-make build
+go test ./...
+go build ./cmd/collector ./cmd/dashboard
 ```
 
-Place or point to the upstream scraper binary, then run:
+Jalankan dashboard:
 
 ```bash
 ./bin/b2b-dashboard \
@@ -136,46 +134,27 @@ Place or point to the upstream scraper binary, then run:
   -collector ./bin/search-engine-b2b
 ```
 
-Open:
+Buka:
 
 ```text
 http://localhost:8080
 ```
 
-## Direct collector examples
+Halaman utama sales:
 
-Default preset:
-
-```bash
-./bin/search-engine-b2b \
-  -engine /path/to/google_maps_scraper \
-  -location "Sukamulya, Cugenang, Kabupaten Cianjur, Jawa Barat, Indonesia" \
-  -- -c 2 -depth 5
+```text
+/contact     Visit / Prospecting Session
+/merchants   Merchant Pipeline
 ```
 
-Custom-only:
+## Collector langsung
 
 ```bash
 ./bin/search-engine-b2b \
-  -engine /path/to/google_maps_scraper \
-  -location "Cugenang, Kabupaten Cianjur, Jawa Barat, Indonesia" \
-  -keywords "agen pupuk; toko alat berat; bakery" \
-  -- -c 2 -depth 5
-```
-
-Custom + default:
-
-```bash
-./bin/search-engine-b2b \
-  -engine /path/to/google_maps_scraper \
-  -location "Cianjur, Jawa Barat, Indonesia" \
-  -keywords "agen pupuk; toko alat berat" \
+  -location "Cilaku, Kabupaten Cianjur, Jawa Barat, Indonesia" \
+  -keywords "warung; warung sembako; rumah makan; cafe" \
   -include-defaults=true \
   -- -c 2 -depth 5
 ```
 
-The filtered CSV is written to `data/prospects.csv` and imported into `data/prospects.db` by default.
-
-## Important boundary
-
-This tool discovers and organizes **public business listings** and manages operator-recorded sales activity. It does not infer that a named person or business is in financial distress. Qualification is based on information actually obtained during communication, not assumptions from Maps data.
+Data hasil discovery tetap disimpan di `data/prospects.db` sehingga engine pencarian dan sales workflow dapat dikembangkan secara terpisah.

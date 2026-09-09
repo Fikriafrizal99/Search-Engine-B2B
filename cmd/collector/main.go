@@ -19,16 +19,16 @@ import (
 )
 
 func main() {
-	presetName := flag.String("preset", "b2b-prospecting", "preset name")
+	presetName := flag.String("preset", "bukupay-merchants", "preset name")
 	areaName := flag.String("area", "java-sumatra", "area name")
 	subarea := flag.String("subarea", "", "optional province")
 	location := flag.String("location", "", "resolved province/regency/district/village location")
-	keywordsRaw := flag.String("keywords", "", "optional custom business keywords separated by newline, comma, or semicolon")
-	includeDefaults := flag.Bool("include-defaults", false, "include preset keywords in addition to custom keywords")
+	keywordsRaw := flag.String("keywords", "", "optional custom merchant keywords separated by newline, comma, or semicolon")
+	includeDefaults := flag.Bool("include-defaults", false, "include Bukupay merchant preset keywords in addition to custom keywords")
 	configDir := flag.String("config-dir", "config", "config directory")
 	engine := flag.String("engine", filepath.FromSlash("bin/google_maps_scraper"), "path to upstream google maps scraper binary")
-	output := flag.String("output", filepath.FromSlash("data/prospects.csv"), "filtered B2B CSV output")
-	dbPath := flag.String("db", filepath.FromSlash("data/prospects.db"), "SQLite prospect database")
+	output := flag.String("output", filepath.FromSlash("data/prospects.csv"), "filtered merchant CSV output")
+	dbPath := flag.String("db", filepath.FromSlash("data/prospects.db"), "SQLite merchant prospect database")
 	noDB := flag.Bool("no-db", false, "skip database import")
 	keepRaw := flag.Bool("keep-raw", false, "keep temporary raw files")
 	flag.Parse()
@@ -75,7 +75,7 @@ func main() {
 			fatalf("create output dir: %v", err)
 		}
 	}
-	tmpDir, err := os.MkdirTemp("", "search-engine-b2b-*")
+	tmpDir, err := os.MkdirTemp("", "bukupay-merchant-hunter-*")
 	if err != nil {
 		fatalf("temp dir: %v", err)
 	}
@@ -87,7 +87,7 @@ func main() {
 	if err := writeQueries(queryFile, queries); err != nil {
 		fatalf("write queries: %v", err)
 	}
-	fmt.Printf("Search Engine B2B | keywords=%d queries=%d\n", len(effectivePreset.Keywords), len(queries))
+	fmt.Printf("Bukupay Merchant Hunter | keywords=%d queries=%d\n", len(effectivePreset.Keywords), len(queries))
 	if len(customKeywords) > 0 {
 		fmt.Printf("Custom keywords: %d | include defaults: %t\n", len(customKeywords), *includeDefaults)
 	}
@@ -117,7 +117,7 @@ func main() {
 	if err := collectorpost.ProcessCSV(rawFile, *output, preset); err != nil {
 		fatalf("post-process: %v", err)
 	}
-	fmt.Printf("Prospect CSV: %s\n", *output)
+	fmt.Printf("Merchant CSV: %s\n", *output)
 
 	if !*noDB {
 		if err := runCtx.Err(); err != nil {
@@ -143,7 +143,7 @@ func main() {
 		if closeErr != nil {
 			fatalf("close database: %v", closeErr)
 		}
-		fmt.Printf("Prospect DB: %s (%d rows processed)\n", *dbPath, count)
+		fmt.Printf("Merchant DB: %s (%d rows processed)\n", *dbPath, count)
 	}
 	fmt.Println("PHASE done")
 	if *keepRaw {
