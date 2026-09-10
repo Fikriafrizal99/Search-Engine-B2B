@@ -88,6 +88,10 @@ func merchantListWhere(f MerchantListFilter, now time.Time) (string, []any, erro
 		}
 		parts = append(parts, "ms.status=?")
 		args = append(args, status)
+	} else {
+		// The default Sales Workspace contains only sales/terminal states. Coverage-only
+		// states stay in Area Planner / Visit Session and must not flood the sales queue.
+		parts = append(parts, `ms.status NOT IN ('to_visit','visited','owner_not_found')`)
 	}
 	if location := strings.TrimSpace(f.Location); location != "" {
 		parts = append(parts, "LOWER(p.location_scope) LIKE ?")
@@ -101,9 +105,6 @@ func merchantListWhere(f MerchantListFilter, now time.Time) (string, []any, erro
 	if f.Due {
 		parts = append(parts, `ms.next_action_at<>'' AND ms.next_action_at<=? AND ms.status NOT IN ('active','not_interested','already_soundbox','closed','invalid_lead')`)
 		args = append(args, now.UTC().Format(time.RFC3339))
-	}
-	if len(parts) == 0 {
-		return "", args, nil
 	}
 	return " WHERE " + strings.Join(parts, " AND "), args, nil
 }
@@ -160,9 +161,9 @@ func (s *Store) FilterMerchantPipeline(ctx context.Context, f MerchantListFilter
 	rows, err := s.db.QueryContext(ctx, `SELECT ms.id FROM merchant_sales ms JOIN prospects p ON p.id=ms.prospect_id`+where+`
 		ORDER BY CASE WHEN ms.next_action_at<>'' AND ms.next_action_at<=? THEN 0 ELSE 1 END,
 		CASE ms.status
-			WHEN 'to_visit' THEN 1 WHEN 'visited' THEN 2 WHEN 'presented' THEN 3 WHEN 'interested' THEN 4
-			WHEN 'follow_up' THEN 5 WHEN 'registration' THEN 6 WHEN 'registered' THEN 7
-			WHEN 'installation' THEN 8 WHEN 'installed' THEN 9 WHEN 'active' THEN 10 ELSE 20 END,
+			WHEN 'presented' THEN 1 WHEN 'interested' THEN 2 WHEN 'follow_up' THEN 3
+			WHEN 'registration' THEN 4 WHEN 'registered' THEN 5 WHEN 'installation' THEN 6
+			WHEN 'installed' THEN 7 WHEN 'active' THEN 8 ELSE 20 END,
 		ms.next_action_at ASC,ms.updated_at ASC,ms.id ASC LIMIT ? OFFSET ?`, args...)
 	if err != nil {
 		return nil, err
