@@ -25,11 +25,12 @@ type merchantPipelinePageData struct {
 }
 
 type merchantPageData struct {
-	Prospect   prospectstore.Prospect
-	Merchant   prospectstore.Merchant
-	VisitState prospectstore.VisitState
-	History    []prospectstore.MerchantEvent
-	Visits     []prospectstore.VisitHistoryEntry
+	Prospect      prospectstore.Prospect
+	Merchant      prospectstore.Merchant
+	VisitState    prospectstore.VisitState
+	History       []prospectstore.MerchantEvent
+	Visits        []prospectstore.VisitHistoryEntry
+	LatestVisitID int64
 }
 
 var merchantFuncs = template.FuncMap{
@@ -65,6 +66,8 @@ func registerMerchantRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("GET /merchant/{id}", a.handleMerchant)
 	mux.HandleFunc("POST /merchant/{id}", a.handleMerchantUpdate)
 	mux.HandleFunc("GET /merchant/prospect/{id}", a.handleEnsureMerchant)
+	mux.HandleFunc("GET /merchant/{id}/visit/{visitID}/edit", a.handleVisitCorrectionForm)
+	mux.HandleFunc("POST /merchant/{id}/visit/{visitID}/edit", a.handleVisitCorrection)
 	registerAreaRoutes(mux, a)
 }
 
@@ -170,7 +173,11 @@ func (a *app) handleMerchant(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	renderPhase2(w, merchantTmpl, merchantPageData{Prospect: record.Prospect, Merchant: m, VisitState: visitState, History: history, Visits: visits})
+	var latestVisitID int64
+	if len(visits) > 0 {
+		latestVisitID = visits[0].ID
+	}
+	renderPhase2(w, merchantTmpl, merchantPageData{Prospect: record.Prospect, Merchant: m, VisitState: visitState, History: history, Visits: visits, LatestVisitID: latestVisitID})
 }
 
 func (a *app) handleMerchantUpdate(w http.ResponseWriter, r *http.Request) {
@@ -183,6 +190,11 @@ func (a *app) handleMerchantUpdate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid form", http.StatusBadRequest)
 		return
 	}
+	current, err := a.store.GetMerchant(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	var nextActionAt time.Time
 	if raw := strings.TrimSpace(r.FormValue("next_action_at")); raw != "" {
 		nextActionAt, err = time.ParseInLocation("2006-01-02T15:04", raw, jakartaLocation)
@@ -193,12 +205,23 @@ func (a *app) handleMerchantUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	status := strings.TrimSpace(r.FormValue("status"))
 	if status == "" {
-		current, getErr := a.store.GetMerchant(r.Context(), id)
-		if getErr != nil {
-			http.Error(w, getErr.Error(), http.StatusNotFound)
+		visitState, visitErr := a.store.GetVisitState(r.Context(), current.ProspectID)
+		if visitErr != nil {
+			http.Error(w, visitErr.Error(), http.StatusInternalServerError)
 			return
 		}
-		status = current.Status
+		switch visitState.VisitStatus {
+		case prospectstore.VisitUnvisited, prospectstore.VisitPlanned:
+			status = prospectstore.MerchantToVisit
+		case prospectstore.VisitRevisitRequired:
+			if visitState.LastResult == "owner_not_found" {
+				status = prospectstore.MerchantOwnerNotFound
+			} else {
+				status = prospectstore.MerchantVisited
+			}
+		default:
+			status = prospectstore.MerchantVisited
+		}
 	}
 	_, err = a.store.UpdateMerchant(r.Context(), id, prospectstore.MerchantInput{
 		Status:             status,
@@ -230,9 +253,9 @@ func merchantStatusLabel(v string) string {
 	return labels(map[string]string{
 		"to_visit": "Belum masuk Sales Pipeline", "visited": "Belum masuk Sales Pipeline", "presented": "Presented", "interested": "Interested",
 		"follow_up": "Follow Up", "registration": "Registration", "registered": "Registered",
-		"installation": "Installation", "installed": "Installed", "active": "Active",
+		"installation": "Installation", "installed": "Soundbox Bukupay Terpasang", "active": "Aktif Bukupay",
 		"not_interested": "Tidak Tertarik", "owner_not_found": "Revisit / Owner Tidak Ada",
-		"already_soundbox": "Sudah Punya Soundbox", "closed": "Tutup", "invalid_lead": "Invalid Lead",
+		"already_soundbox": "Sudah Punya Soundbox Sebelumnya", "closed": "Tutup", "invalid_lead": "Invalid Lead",
 	}, v, v)
 }
 
