@@ -2,7 +2,17 @@
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rute Kunjungan · Bukupay</title><link rel="stylesheet" href="/assets/bukupay-ui-v2.css"><link rel="stylesheet" href="/assets/phase3.css"></head>
 <body class="ui-body">{{template "ui-symbols"}}{{template "ui-nav" "areas"}}
 <main class="ui-container phase3" id="main">
- <div class="p3-heading"><div><h1>Rute Kunjungan</h1><p class="ui-subtitle">{{.Plan.PlanDate}} · {{shortArea .Plan.LocationScope}}</p></div><div class="p3-actions"><a class="ui-button ui-outline" href="/areas">Area Planner</a>{{if .NextProspectID}}<a class="ui-button ui-primary" href="/contact?plan_id={{.Plan.ID}}">Mulai / Lanjutkan Visit</a>{{else}}<a class="ui-button ui-outline" href="/sales">Dashboard</a>{{end}}</div></div>
+ <div class="p3-heading">
+  <div><h1>Rute Kunjungan</h1><p class="ui-subtitle">{{.Plan.PlanDate}} · {{shortArea .Plan.LocationScope}}</p></div>
+  <div class="p3-actions">
+   <a class="ui-button ui-outline" href="/areas">Area Planner</a>
+   <a class="ui-button ui-outline" href="/visit-plan/{{.Plan.ID}}/offline.xlsx">Download</a>
+   <form method="post" action="/visit-plan/{{.Plan.ID}}/offline" enctype="multipart/form-data" style="margin:0">
+    <label class="ui-button ui-outline" style="cursor:pointer">Upload<input type="file" name="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required hidden onchange="this.form.submit()"></label>
+   </form>
+   {{if .NextProspectID}}<a class="ui-button ui-primary" href="/contact?plan_id={{.Plan.ID}}">Mulai / Lanjutkan Visit</a>{{else}}<a class="ui-button ui-outline" href="/sales">Dashboard</a>{{end}}
+  </div>
+ </div>
 
  <section class="ui-card p3-panel"><div class="p3-route-summary"><div class="p3-stat"><span>Merchant</span><strong>{{len .Plan.Items}}</strong></div><div class="p3-stat blue"><span>Selesai</span><strong>{{.Done}}</strong></div><div class="p3-stat amber"><span>Sisa</span><strong>{{.Remaining}}</strong></div><div class="p3-stat rose"><span>Revisit</span><strong>{{.Revisit}}</strong></div><div class="p3-stat green"><span>Jarak</span><strong>{{printf "%.1f" .TotalDistanceKM}} km</strong></div><div class="p3-stat purple"><span>Perkiraan Waktu</span><strong class="p3-duration-value">{{durationLabel .TotalDurationSeconds}}</strong></div></div><div class="p3-scope"><strong>{{shortArea .Plan.LocationScope}}</strong><span> · Target {{.Plan.TargetCount}} merchant</span></div></section>
 
