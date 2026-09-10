@@ -75,6 +75,14 @@ func TestCorrectLatestVisitKeepsVisitCountAndFixesSalesStatus(t *testing.T) {
 		t.Fatalf("unexpected corrected visit state: %+v", after)
 	}
 
+	execution, err := store.GetExecution(ctx, prospectID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if execution.Status != ExecutionAlreadySoundbox || execution.LastResult != "already_soundbox" {
+		t.Fatalf("wrong corrected execution state: %+v", execution)
+	}
+
 	merchant, ok, err := store.GetMerchantByProspect(ctx, prospectID)
 	if err != nil || !ok {
 		t.Fatalf("merchant: ok=%v err=%v", ok, err)
