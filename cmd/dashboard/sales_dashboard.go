@@ -46,7 +46,7 @@ var salesDashboardTmpl = template.Must(template.Must(template.New("sales-dashboa
 
 func registerSalesDashboardRoutes(mux *http.ServeMux, a *app) {
 	registerUIAssets(mux)
-	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/database", http.StatusSeeOther) })
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/sales", http.StatusSeeOther) })
 	mux.HandleFunc("GET /sales", a.handleSalesDashboard)
 	mux.HandleFunc("GET /database", a.handleBukupayDatabase)
 	mux.HandleFunc("POST /bukupay/collect", a.handleBukupayCollect)
