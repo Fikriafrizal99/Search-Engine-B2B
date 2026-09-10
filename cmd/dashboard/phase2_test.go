@@ -38,7 +38,7 @@ func TestPhase2PagesAndActions(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, httptest.NewRequest("GET", "/areas", nil))
-	for _, want := range []string{"Mode Pencarian", "value=\"auto\"", "value=\"manual\"", "manual-include-defaults", "scrape-query-mode", "scrape-runtime"} {
+	for _, want := range []string{"Pengaturan Pencarian", "area-advanced", "value=\"auto\"", "value=\"manual\"", "manual-include-defaults", "scrape-query-mode", "scrape-runtime"} {
 		if !strings.Contains(w.Body.String(), want) {
 			t.Fatalf("Area Planner missing scrape mode control %q", want)
 		}
