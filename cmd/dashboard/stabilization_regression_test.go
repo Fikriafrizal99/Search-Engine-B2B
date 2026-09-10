@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -110,8 +111,12 @@ func TestDashboardRouteCreationCarriesSoleArea(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("dashboard: %d %s", w.Code, w.Body.String())
 	}
+	// html/template escapes query strings inside href attributes (for example
+	// '+' can become '&#43;' and '&' becomes '&amp;'). Normalize the rendered
+	// HTML before asserting the actual route query value.
+	body := html.UnescapeString(w.Body.String())
 	want := "location=" + url.QueryEscape(plan.LocationScope)
-	if !strings.Contains(w.Body.String(), want) {
+	if !strings.Contains(body, want) {
 		t.Fatalf("dashboard route creation link missing sole area %q", plan.LocationScope)
 	}
 }
