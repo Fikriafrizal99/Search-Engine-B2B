@@ -18,7 +18,12 @@ COPY --from=bukupay-builder /out/search-engine-b2b /app/bin/search-engine-b2b
 COPY --from=bukupay-builder /out/bukupay-dashboard /app/bin/bukupay-dashboard
 COPY config /app/config
 
-RUN mkdir -p /app/data && chmod -R a+rwX /app/data
+# Bukupay runs as a non-root UID from docker-compose. The upstream scraper
+# invokes Playwright's browser installer at runtime, which creates a lock under
+# PLAYWRIGHT_BROWSERS_PATH (/opt/browsers). Keep the bundled browser directory
+# writable so a collect does not fail with EACCES on /opt/browsers/__dirlock.
+RUN mkdir -p /app/data /opt/browsers \
+    && chmod -R a+rwX /app/data /opt/browsers
 
 EXPOSE 8082
 
