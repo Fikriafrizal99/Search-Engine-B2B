@@ -77,7 +77,7 @@ func TestPhase3OperationalPagesRender(t *testing.T) {
 		want string
 	}{
 		{"/contact?mode=all", "Visit Session"},
-		{"/database", "Database & Scraper"},
+		{"/database", "Database Merchant"},
 		{"/visit-plans/new?location=" + url.QueryEscape(scope), "Buat Rute Kunjungan"},
 		{fmt.Sprintf("/merchant/%d", merchant.ID), "Merchant Detail"},
 		{"/assets/phase3.css", ".phase3"},
