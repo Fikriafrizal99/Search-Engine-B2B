@@ -23,6 +23,7 @@ func registerAreaRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("GET /api/coverage", a.handleCoverageSnapshot)
 	mux.HandleFunc("GET /api/visit-report", a.handleDailyVisitReport)
 	registerVisitPlanRoutes(mux, a)
+	registerOfflineVisitRoutes(mux, a)
 	registerSalesDashboardRoutes(mux, a)
 }
 
