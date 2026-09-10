@@ -1,4 +1,150 @@
-/* Stabilization overrides: keep summary groups visually centered on wide screens. */
+/* Stabilization overrides: centered layouts + consistent readable typography. */
+.ui-body {
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.ui-body h1,
+.sales-heading h1,
+.phase3 h1 {
+  font-weight: 800;
+}
+
+.ui-subtitle {
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+.ui-muted {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ui-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+
+.ui-sectiontitle h2 {
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 750;
+}
+
+.ui-sectiontitle p {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ui-button {
+  font-size: 13px;
+}
+
+.phase3 .p3-meta,
+.phase3 .p3-toolbar-note,
+.phase3 .p3-scope {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.phase3 .p3-field,
+.phase3 .p3-check,
+.phase3 .p3-check-card {
+  font-size: 13px;
+}
+
+.phase3 .p3-field input,
+.phase3 .p3-field select,
+.phase3 .p3-field textarea {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.phase3 .p3-info small {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.phase3 .p3-info strong,
+.phase3 .p3-info span {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.phase3 .p3-note {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.phase3 .p3-stat span {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.phase3 .p3-stat strong {
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.phase3 .p3-insight {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.phase3 .p3-insight > span,
+.phase3 .p3-insight > .ui-muted:first-child {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.phase3 .p3-insight strong {
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.phase3 .p3-insight > div {
+  font-size: 13px;
+}
+
+.phase3 .p3-table th {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.phase3 .p3-table td {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.sales-kpi h2 {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.sales-kpi p,
+.sales-route-banner p,
+.sales-priority-name p,
+.sales-address,
+.sales-priority-reason {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sales-stage h3 {
+  font-size: 11px;
+}
+
+.sales-stage > span {
+  font-size: 11px;
+}
+
 .sales-dashboard .sales-pipeline-grid {
   grid-template-columns: repeat(8, minmax(120px, 1fr));
   max-width: 1120px;
@@ -22,6 +168,70 @@
   justify-content: center;
 }
 
+/* Database: equal insight cards, clear value hierarchy and compact workflow. */
+.database-page .database-insights-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.database-page .database-insight-card {
+  min-height: 132px;
+  padding: 16px;
+  justify-content: space-between;
+  background: #fbfdff;
+}
+
+.database-page .database-insight-label {
+  color: var(--ui-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 650;
+}
+
+.database-page .database-insight-value {
+  display: -webkit-box;
+  color: var(--ui-text);
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 800;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.database-page .database-insight-meta {
+  color: var(--ui-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.database-page .database-flow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.database-page .database-flow span {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 7px 10px;
+  border: 1px solid #d7e5f8;
+  border-radius: 999px;
+  background: #f5f9ff;
+  color: #244c78;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.database-page .database-flow b {
+  color: #7b8ba3;
+  font-size: 15px;
+  font-weight: 700;
+}
+
 @media (max-width: 1100px) {
   .sales-dashboard .sales-pipeline-grid {
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -39,12 +249,117 @@
   }
 }
 
+@media (max-width: 900px) {
+  .database-page .database-insights-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 640px) {
+  .ui-body {
+    font-size: 14px;
+  }
+
+  .ui-topbar-inner {
+    padding-inline: 14px;
+    gap: 16px;
+  }
+
+  .ui-brand {
+    font-size: 20px;
+  }
+
+  .ui-nav {
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .ui-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ui-nav a {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .ui-container {
+    padding: 16px 14px 24px;
+  }
+
+  .ui-subtitle {
+    font-size: 14px;
+  }
+
+  .ui-sectiontitle h2 {
+    font-size: 17px;
+  }
+
+  .ui-muted,
+  .ui-sectiontitle p {
+    font-size: 12.5px;
+  }
+
+  .phase3 .p3-panel {
+    margin-bottom: 12px;
+  }
+
+  .phase3 .p3-field,
+  .phase3 .p3-check,
+  .phase3 .p3-check-card,
+  .phase3 .p3-note,
+  .phase3 .p3-meta {
+    font-size: 12.5px;
+  }
+
+  .phase3 .p3-info strong,
+  .phase3 .p3-info span {
+    font-size: 13.5px;
+  }
+
+  .phase3 .p3-table th {
+    font-size: 11.5px;
+  }
+
+  .phase3 .p3-table td {
+    font-size: 12.5px;
+  }
+
   .merchant-pipeline .merchant-stages {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .merchant-pipeline .merchant-exceptions {
     grid-template-columns: 1fr;
+  }
+
+  .database-page .database-insights-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .database-page .database-insight-card {
+    min-height: 112px;
+    padding: 14px;
+  }
+
+  .database-page .database-insight-value {
+    font-size: 20px;
+  }
+
+  .database-page .database-flow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .database-page .database-flow span {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .database-page .database-flow b {
+    align-self: center;
+    transform: rotate(90deg);
   }
 }
