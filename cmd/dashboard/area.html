@@ -37,6 +37,12 @@
    </div>
   </div>
   <div class="area-actions"><form method="post" action="/bukupay/collect" id="scrape-form"><input type="hidden" name="location" id="collect-location"><input type="hidden" name="query_mode" id="scrape-query-mode" value="defaults_only"><input type="hidden" name="depth" value="5"><input type="hidden" name="concurrency" value="2"><button type="submit" id="scrape-btn" class="ui-button ui-primary" disabled>{{template "ui-icon" "database"}}Scrape Kelurahan Ini</button></form><a id="route-link" class="ui-button ui-outline" aria-disabled="true">{{template "ui-icon" "calendar"}}<span>Buat Rute Besok</span></a><a id="merchant-link" class="ui-button ui-outline" aria-disabled="true">{{template "ui-icon" "map"}}Lihat Merchant Area</a></div>
+  <div id="scrape-runtime" class="p2-message" role="status" hidden>
+   <div class="ui-sectionhead"><div><strong id="scrape-phase">Menyiapkan</strong><p id="scrape-status-text" class="ui-muted">Collector siap.</p></div><button type="button" id="scrape-cancel" class="ui-button ui-compact" hidden>Batalkan</button></div>
+   <progress id="scrape-progress" class="ui-progress" max="100" aria-label="Progress scraper"></progress>
+   <div class="area-progress-label"><span id="scrape-elapsed" class="ui-muted"></span><span id="scrape-terminal" class="ui-badge slate" hidden></span></div>
+   <details id="scrape-log-wrap" hidden><summary class="ui-textlink">Detail log</summary><pre id="scrape-log" style="white-space:pre-wrap;font-size:11px;background:#f8faff;padding:10px;border-radius:7px;overflow:auto;max-height:220px"></pre></details>
+  </div>
   <p id="scrape-message" class="p2-message" role="status" hidden></p>
  </section>
  <div class="area-bottom"><section class="ui-card p2-panel"><div class="ui-sectiontitle"><span class="blue">{{template "ui-icon" "chart"}}</span><div><h2>Snapshot Area</h2><p class="ui-muted">Ringkasan database merchant pada area terpilih.</p></div></div><div id="area-snapshot" class="area-snapshot"><p class="ui-muted">Pilih kelurahan untuk melihat snapshot.</p></div></section><section class="ui-card p2-panel"><div class="ui-sectiontitle"><span class="blue">{{template "ui-icon" "bolt"}}</span><div><h2>Rekomendasi Berikutnya</h2><p class="ui-muted">Langkah berikut berdasarkan status coverage dan kesiapan rute.</p></div></div><ol id="area-recommendations" class="area-recommendations"><li>Pilih kelurahan untuk melihat langkah berikutnya.</li></ol></section></div>
