@@ -36,8 +36,18 @@ var visitPlanFormTmpl = template.Must(template.Must(template.New("visit-plan-for
 var visitPlanTmpl = template.Must(template.Must(template.New("visit-plan").Funcs(template.FuncMap{
 	"wa":            waNumber,
 	"durationLabel": durationLabel,
+	"shortArea": func(area string) string {
+		parts := strings.Split(area, ",")
+		if len(parts) > 2 {
+			parts = parts[:2]
+		}
+		for i := range parts {
+			parts[i] = strings.TrimSpace(parts[i])
+		}
+		return strings.Join(parts, ", ")
+	},
 	"routeStatusLabel": func(value string) string {
-		return labels(map[string]string{"planned": "Planned", "visited": "Visited", "revisit_required": "Revisit", "excluded": "Excluded"}, value, value)
+		return labels(map[string]string{"planned": "Belum Visit", "visited": "Selesai", "revisit_required": "Revisit", "excluded": "Dikecualikan"}, value, value)
 	},
 }).Parse(visitPlanHTML)).ParseFS(uiAssets, "ui/shared.html"))
 
