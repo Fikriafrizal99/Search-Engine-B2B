@@ -131,8 +131,9 @@ func TestVisitSessionPrefersTodayRouteButExplicitQueueStillWorks(t *testing.T) {
 
 	w = httptest.NewRecorder()
 	mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/contact?mode=all", nil))
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Action Queue") {
-		t.Fatalf("explicit action queue unavailable: %d %s", w.Code, w.Body.String())
+	body := w.Body.String()
+	if w.Code != http.StatusOK || !strings.Contains(body, `href="/contact?mode=all">Semua</a>`) || !strings.Contains(body, "Daftar visit") || strings.Contains(body, "Rute Aktif ·") {
+		t.Fatalf("explicit action queue unavailable: %d %s", w.Code, body)
 	}
 }
 
