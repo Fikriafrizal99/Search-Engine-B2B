@@ -7,6 +7,8 @@ import (
 	"math"
 )
 
+const maxOSRMCandidatePool = 100
+
 type VisitPlanRoadMetrics struct {
 	RoutingSource   string
 	DurationSeconds map[int64]float64
@@ -71,20 +73,22 @@ func (s *Store) selectVisitRoute(ctx context.Context, candidates []routeCandidat
 	if router == nil || len(candidates) == 0 {
 		return fallback()
 	}
-	points := make([]RoutePoint, 0, len(candidates)+1)
+
+	roadCandidates := boundedRoadCandidatePool(candidates, startLat, startLon, limit)
+	points := make([]RoutePoint, 0, len(roadCandidates)+1)
 	points = append(points, RoutePoint{Lat: startLat, Lon: startLon})
-	for _, candidate := range candidates {
+	for _, candidate := range roadCandidates {
 		points = append(points, RoutePoint{Lat: candidate.Prospect.Latitude, Lon: candidate.Prospect.Longitude})
 	}
 	matrix, err := router.Matrix(ctx, points)
 	if err != nil || len(matrix.Distances) != len(points) || len(matrix.Durations) != len(points) {
 		return fallback()
 	}
-	if limit <= 0 || limit > len(candidates) {
-		limit = len(candidates)
+	if limit <= 0 || limit > len(roadCandidates) {
+		limit = len(roadCandidates)
 	}
-	remaining := make([]int, len(candidates))
-	for i := range candidates {
+	remaining := make([]int, len(roadCandidates))
+	for i := range roadCandidates {
 		remaining[i] = i + 1
 	}
 	selected := make([]routedCandidate, 0, limit)
@@ -101,10 +105,10 @@ func (s *Store) selectVisitRoute(ctx context.Context, candidates []routeCandidat
 			if distanceMeters < 0 {
 				continue
 			}
-			candidateID := candidates[matrixIndex-1].Prospect.ID
+			candidateID := roadCandidates[matrixIndex-1].Prospect.ID
 			bestID := int64(math.MaxInt64)
 			if bestPos >= 0 {
-				bestID = candidates[remaining[bestPos]-1].Prospect.ID
+				bestID = roadCandidates[remaining[bestPos]-1].Prospect.ID
 			}
 			if distanceMeters < bestDistance || (math.Abs(distanceMeters-bestDistance) < 0.001 && candidateID < bestID) {
 				bestPos = pos
@@ -115,7 +119,7 @@ func (s *Store) selectVisitRoute(ctx context.Context, candidates []routeCandidat
 			return fallback()
 		}
 		matrixIndex := remaining[bestPos]
-		prospect := candidates[matrixIndex-1].Prospect
+		prospect := roadCandidates[matrixIndex-1].Prospect
 		duration := float64(0)
 		if current < len(matrix.Durations) && matrixIndex < len(matrix.Durations[current]) && matrix.Durations[current][matrixIndex] > 0 {
 			duration = matrix.Durations[current][matrixIndex]
@@ -126,4 +130,34 @@ func (s *Store) selectVisitRoute(ctx context.Context, candidates []routeCandidat
 		remaining = append(remaining[:bestPos], remaining[bestPos+1:]...)
 	}
 	return selected, durations, "osrm"
+}
+
+// boundedRoadCandidatePool prevents a large scraped village from producing an
+// unnecessarily huge OSRM table request. The daily target is small (normally
+// 25), so first build a distance-only local pool, then let OSRM choose the road
+// order inside that pool. If OSRM fails, selectVisitRoute still falls back over
+// the complete candidate set.
+func boundedRoadCandidatePool(candidates []routeCandidate, startLat, startLon float64, limit int) []routeCandidate {
+	if len(candidates) <= maxOSRMCandidatePool {
+		return candidates
+	}
+	if limit <= 0 {
+		limit = 25
+	}
+	poolSize := limit * 4
+	if poolSize < limit {
+		poolSize = limit
+	}
+	if poolSize > maxOSRMCandidatePool {
+		poolSize = maxOSRMCandidatePool
+	}
+	if poolSize > len(candidates) {
+		poolSize = len(candidates)
+	}
+	provisional := nearestNeighbor(candidates, startLat, startLon, poolSize)
+	pool := make([]routeCandidate, 0, len(provisional))
+	for _, item := range provisional {
+		pool = append(pool, routeCandidate{Prospect: item.Prospect})
+	}
+	return pool
 }
