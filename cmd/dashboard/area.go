@@ -21,6 +21,7 @@ var areaTmpl = template.Must(template.Must(template.New("area").Funcs(phase2Func
 func registerAreaRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("GET /areas", a.handleAreaPlanner)
 	mux.HandleFunc("GET /api/coverage", a.handleCoverageSnapshot)
+	mux.HandleFunc("GET /api/visit-report", a.handleDailyVisitReport)
 	registerVisitPlanRoutes(mux, a)
 	registerSalesDashboardRoutes(mux, a)
 }
