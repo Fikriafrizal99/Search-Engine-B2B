@@ -38,7 +38,7 @@ func TestVisitSessionSeparatesFieldResultsFromSalesStages(t *testing.T) {
 		`value="follow_up"`,
 		`value="already_soundbox"`,
 		`Sudah punya Soundbox sebelumnya`,
-		`Registration / Installation / Installed / Active hanya diubah dari Merchant Detail`,
+		`Registration / Installation / Installed / Active hanya diubah dari Sales Workspace`,
 	} {
 		if !strings.Contains(contactHTML, want) {
 			t.Fatalf("visit session missing %q", want)
@@ -51,7 +51,7 @@ func TestVisitSessionSeparatesFieldResultsFromSalesStages(t *testing.T) {
 	}
 }
 
-func TestMerchantExposesLatestVisitCorrection(t *testing.T) {
+func TestVisitSessionExposesLatestVisitCorrection(t *testing.T) {
 	_, mux, plan := setupP0RouteTest(t)
 	prospectID := plan.Items[0].Prospect.ID
 	form := url.Values{"channel": {"visit"}, "result": {"visited"}, "mode": {"all"}, "plan_id": {fmt.Sprint(plan.ID)}}
@@ -64,6 +64,18 @@ func TestMerchantExposesLatestVisitCorrection(t *testing.T) {
 	}
 
 	w = httptest.NewRecorder()
+	contactURL := fmt.Sprintf("/contact?plan_id=%d&id=%d", plan.ID, prospectID)
+	mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, contactURL, nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("visit session: %d %s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "Update Visit Merchant") || !strings.Contains(body, "Koreksi Visit Terakhir") || !strings.Contains(body, fmt.Sprintf("/contact/%d/visit/", prospectID)) || !strings.Contains(body, "/edit") {
+		t.Fatalf("latest visit correction action missing from Visit Session: %s", body)
+	}
+
+	// Visit controls were intentionally moved out of Sales Workspace.
+	w = httptest.NewRecorder()
 	mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, fmt.Sprintf("/merchant/prospect/%d", prospectID), nil))
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("ensure merchant: %d %s", w.Code, w.Body.String())
@@ -72,10 +84,10 @@ func TestMerchantExposesLatestVisitCorrection(t *testing.T) {
 	w = httptest.NewRecorder()
 	mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, merchantURL, nil))
 	if w.Code != http.StatusOK {
-		t.Fatalf("merchant page: %d %s", w.Code, w.Body.String())
+		t.Fatalf("sales workspace: %d %s", w.Code, w.Body.String())
 	}
-	if !strings.Contains(w.Body.String(), "Koreksi Visit Terakhir") || !strings.Contains(w.Body.String(), "/edit") {
-		t.Fatalf("latest visit correction action missing: %s", w.Body.String())
+	if strings.Contains(w.Body.String(), "Koreksi Visit Terakhir") {
+		t.Fatalf("visit correction action must stay in Visit Session, not Sales Workspace: %s", w.Body.String())
 	}
 }
 
