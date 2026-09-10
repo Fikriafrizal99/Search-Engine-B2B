@@ -104,6 +104,18 @@ func registerPhase2Assets(mux *http.ServeMux) {
 			w.Header().Set("Content-Type", asset.mime+"; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-cache")
 			_, _ = w.Write(data)
+			if asset.name == "phase2.css" {
+				if fixes, err := uiAssets.ReadFile("ui/layout-fixes.css"); err == nil {
+					_, _ = w.Write([]byte("\n"))
+					_, _ = w.Write(fixes)
+				}
+			}
+			if asset.name == "area-planner.js" {
+				if borderFilter, err := uiAssets.ReadFile("ui/area-border-filter.js"); err == nil {
+					_, _ = w.Write([]byte("\n"))
+					_, _ = w.Write(borderFilter)
+				}
+			}
 		})
 	}
 }
