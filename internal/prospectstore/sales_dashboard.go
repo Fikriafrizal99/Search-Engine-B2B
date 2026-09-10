@@ -141,7 +141,8 @@ func (s *Store) dashboardRoute(ctx context.Context, date string) (DashboardRoute
 
 func (s *Store) dashboardPriorities(ctx context.Context, today, now string) ([]DashboardPriority, error) {
 	// Dashboard priorities are intentionally outside today's active route. The
-	// route card owns planned visits; this list is only for due revisit/follow-up.
+	// route card owns every merchant assigned to a non-cancelled plan today,
+	// whether the stop is still planned or already received a result.
 	rows, err := s.db.QueryContext(ctx, `SELECT p.id,p.title,p.category,p.address,p.phone,p.maps_url,
  COALESCE(ms.status,'to_visit') AS status,
  CASE WHEN vs.visit_status='revisit_required' AND vs.next_revisit_at<>'' AND vs.next_revisit_at<=? THEN 0 ELSE 1 END AS priority,
@@ -154,7 +155,7 @@ func (s *Store) dashboardPriorities(ctx context.Context, today, now string) ([]D
       OR (ms.next_action_at<>'' AND ms.next_action_at<=?))
  AND NOT EXISTS (
    SELECT 1 FROM visit_plan_items vpi JOIN visit_plans vp ON vp.id=vpi.plan_id
-   WHERE vpi.prospect_id=p.id AND vp.plan_date=? AND vp.status='planned' AND vpi.status='planned'
+   WHERE vpi.prospect_id=p.id AND vp.plan_date=? AND vp.status<>'cancelled'
  )
  ORDER BY priority,due_at,p.id LIMIT 10`, now, now, now, today)
 	if err != nil {
