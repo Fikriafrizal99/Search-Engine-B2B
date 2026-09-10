@@ -140,23 +140,23 @@ func (s *Store) dashboardRoute(ctx context.Context, date string) (DashboardRoute
 }
 
 func (s *Store) dashboardPriorities(ctx context.Context, today, now string) ([]DashboardPriority, error) {
-	// Revisit policy takes precedence over sales follow-up and planned visits.
-	// A future revisit must never leak back into today's queue via an older plan.
-	rows, err := s.db.QueryContext(ctx, `WITH candidates AS (
- SELECT p.id,p.title,p.category,p.address,p.phone,p.maps_url,
+	// Dashboard priorities are intentionally outside today's active route. The
+	// route card owns planned visits; this list is only for due revisit/follow-up.
+	rows, err := s.db.QueryContext(ctx, `SELECT p.id,p.title,p.category,p.address,p.phone,p.maps_url,
  COALESCE(ms.status,'to_visit') AS status,
- CASE WHEN vs.visit_status='revisit_required' AND vs.next_revisit_at<>'' AND vs.next_revisit_at<=? THEN 0
- WHEN ms.next_action_at<>'' AND ms.next_action_at<=? THEN 1 ELSE 2 END AS priority,
- CASE WHEN vs.visit_status='revisit_required' THEN vs.next_revisit_at ELSE COALESCE(ms.next_action_at,'') END AS due_at,
- (SELECT MIN(vpi.sequence) FROM visit_plan_items vpi JOIN visit_plans vp ON vp.id=vpi.plan_id
- WHERE vpi.prospect_id=p.id AND vp.plan_date=? AND vp.status='planned' AND vpi.status='planned') AS sequence
+ CASE WHEN vs.visit_status='revisit_required' AND vs.next_revisit_at<>'' AND vs.next_revisit_at<=? THEN 0 ELSE 1 END AS priority,
+ CASE WHEN vs.visit_status='revisit_required' THEN vs.next_revisit_at ELSE COALESCE(ms.next_action_at,'') END AS due_at
  FROM prospects p LEFT JOIN merchant_sales ms ON ms.prospect_id=p.id
  LEFT JOIN merchant_visit_state vs ON vs.prospect_id=p.id
  WHERE COALESCE(ms.status,'to_visit') NOT IN ('active','installed','not_interested','already_soundbox','closed','invalid_lead')
  AND COALESCE(vs.visit_status,'unvisited')<>'excluded'
- AND (COALESCE(vs.visit_status,'')<>'revisit_required' OR (vs.next_revisit_at<>'' AND vs.next_revisit_at<=?))
- ) SELECT id,title,category,address,phone,maps_url,status,priority,due_at FROM candidates
- WHERE priority<2 OR sequence IS NOT NULL ORDER BY priority,due_at,sequence,id LIMIT 10`, now, now, today, now)
+ AND ((vs.visit_status='revisit_required' AND vs.next_revisit_at<>'' AND vs.next_revisit_at<=?)
+      OR (ms.next_action_at<>'' AND ms.next_action_at<=?))
+ AND NOT EXISTS (
+   SELECT 1 FROM visit_plan_items vpi JOIN visit_plans vp ON vp.id=vpi.plan_id
+   WHERE vpi.prospect_id=p.id AND vp.plan_date=? AND vp.status='planned' AND vpi.status='planned'
+ )
+ ORDER BY priority,due_at,p.id LIMIT 10`, now, now, now, today)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,11 @@ func (s *Store) dashboardPriorities(ctx context.Context, today, now string) ([]D
 		if err := rows.Scan(&item.Prospect.ID, &item.Prospect.Title, &item.Prospect.Category, &item.Prospect.Address, &item.Prospect.Phone, &item.Prospect.MapsURL, &item.Status, &priority, &item.DueAt); err != nil {
 			return nil, err
 		}
-		item.Reason = []string{"Revisit jatuh tempo", "Tindak lanjut jatuh tempo", "Dalam rute hari ini"}[priority]
+		if priority == 0 {
+			item.Reason = "Revisit jatuh tempo"
+		} else {
+			item.Reason = "Tindak lanjut jatuh tempo"
+		}
 		out = append(out, item)
 	}
 	return out, rows.Err()
