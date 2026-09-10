@@ -10,21 +10,23 @@ import (
 func TestFinalPolishStylesAreServed(t *testing.T) {
 	mux := http.NewServeMux()
 	registerUIAssets(mux)
-	w := httptest.NewRecorder()
-	mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/assets/bukupay-ui-v2.css", nil))
-	if w.Code != http.StatusOK {
-		t.Fatalf("stylesheet returned %d", w.Code)
-	}
-	css := w.Body.String()
-	for _, want := range []string{
-		`Final Bukupay UI polish`,
-		`"Segoe UI Variable"`,
-		`.ui-body .p3-result-panel`,
-		`.area-advanced`,
-		`@media (max-width: 640px)`,
-	} {
-		if !strings.Contains(css, want) {
-			t.Fatalf("served stylesheet missing final polish marker %q", want)
+	for _, path := range []string{"/assets/bukupay-ui-v2.css", "/assets/phase2.css", "/assets/phase3.css"} {
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code != http.StatusOK {
+			t.Fatalf("%s returned %d", path, w.Code)
+		}
+		css := w.Body.String()
+		for _, want := range []string{
+			`Final Bukupay UI polish`,
+			`"Segoe UI Variable"`,
+			`.ui-body .phase3 .p3-result-panel`,
+			`.area-advanced`,
+			`@media (max-width: 640px)`,
+		} {
+			if !strings.Contains(css, want) {
+				t.Fatalf("%s missing final polish marker %q", path, want)
+			}
 		}
 	}
 }
