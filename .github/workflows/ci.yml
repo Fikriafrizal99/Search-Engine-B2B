@@ -2,7 +2,7 @@ name: Bukupay CI
 
 on:
   push:
-    branches: [main-bukupay]
+    branches: [main-bukupay, feat/bukupay-field-workflow]
   pull_request:
 
 permissions:
