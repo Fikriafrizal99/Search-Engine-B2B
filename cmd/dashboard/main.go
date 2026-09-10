@@ -69,7 +69,7 @@ var detailTmpl = template.Must(template.New("detail").Funcs(funcs).Parse(detailH
 
 func main() {
 	addr := flag.String("addr", ":8080", "listen address")
-	dbPath := flag.String("db", filepath.FromSlash("data/prospects.db"), "SQLite prospect database")
+	dbPath := flag.String("db", filepath.FromSlash("data/bukupay.db"), "SQLite prospect database")
 	geoCache := flag.String("geo-cache", filepath.FromSlash("data/geo-cache"), "geo API cache directory")
 	configDir := flag.String("config-dir", "config", "config directory")
 	collector := flag.String("collector", filepath.FromSlash("bin/search-engine-b2b"), "collector executable")
@@ -99,7 +99,7 @@ func main() {
 	mux.HandleFunc("GET /api/geo/villages", a.handleVillages)
 	registerContactRoutes(mux, a)
 
-	log.Printf("Search Engine B2B dashboard: http://localhost%s", *addr)
+	log.Printf("Bukupay dashboard: http://localhost%s", *addr)
 	log.Fatal(http.ListenAndServe(*addr, mux))
 }
 
@@ -224,11 +224,21 @@ func (a *app) handleCollect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "collector masih berjalan", http.StatusConflict)
 		return
 	}
+	defaultKeywordCount := 0
+	if includeDefaults {
+		preset, err := collectorconfig.LoadPreset(filepath.Join(a.configDir, "presets", "bukupay-merchants.json"))
+		if err != nil {
+			a.collectMu.Unlock()
+			http.Error(w, "gagal memuat preset Bukupay: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defaultKeywordCount = len(preset.Keywords)
+	}
 	mode := fmt.Sprintf("%d custom query", len(customKeywords))
 	if queryMode == "defaults_only" {
-		mode = "32 query rekomendasi"
+		mode = fmt.Sprintf("%d query rekomendasi", defaultKeywordCount)
 	} else if includeDefaults {
-		mode += " + 32 rekomendasi"
+		mode += fmt.Sprintf(" + %d rekomendasi", defaultKeywordCount)
 	}
 	a.collect = collectState{
 		Running:     true,
@@ -248,7 +258,7 @@ func (a *app) runCollector(location, keywords string, includeDefaults bool, dept
 		a.finishCollect("Gagal membuat folder data: "+err.Error(), "Gagal")
 		return
 	}
-	output := filepath.Join("data", "latest-b2b.csv")
+	output := filepath.Join("data", "latest-bukupay.csv")
 	logPath := filepath.Join("data", "collector-last.log")
 	logFile, err := os.Create(logPath)
 	if err != nil {
@@ -378,8 +388,10 @@ func phaseFromLog(logTail, fallback string) string {
 	switch {
 	case strings.Contains(logTail, "PHASE database-import"):
 		return "Mengimpor database"
-	case strings.Contains(logTail, "PHASE post-process"):
+	case strings.Contains(logTail, "PHASE normalize-dedup") || strings.Contains(logTail, "PHASE post-process"):
 		return "Memproses hasil"
+	case strings.Contains(logTail, "PHASE scraper-shutdown-recovery"):
+		return "Menutup scraper"
 	case strings.Contains(logTail, "PHASE scraping"):
 		return "Scraping Google Maps"
 	case fallback != "":
@@ -443,7 +455,7 @@ func (a *app) handleImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer file.Close()
-	tmp, err := os.CreateTemp("", "b2b-import-*.csv")
+	tmp, err := os.CreateTemp("", "bukupay-import-*.csv")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
