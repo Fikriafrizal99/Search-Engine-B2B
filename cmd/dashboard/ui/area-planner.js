@@ -7,6 +7,7 @@
  const scrapeModes=[...document.querySelectorAll('input[name="scrape-mode"]')];
  const queryMode=$('scrape-query-mode'),manualPanel=$('manual-query-panel'),manualKeywords=$('manual-keywords'),manualIncludeDefaults=$('manual-include-defaults'),manualCount=$('manual-query-count');
  let geoController,coverageController,revision=0,mode='core',savedScope='',retry=()=>chooseCity('DKI JAKARTA','KOTA JAKARTA SELATAN');
+ let scrapeTimer=null,scrapeRunning=false;
  const norm=s=>s.toUpperCase().replace(/DAERAH KHUSUS (IBUKOTA )?JAKARTA/g,'DKI JAKARTA').replace(/ADMINISTRASI|ADMINISTRATIF/g,'').replace(/[^A-Z0-9]+/g,' ').trim();
  const label=el=>el.value?el.selectedOptions[0].textContent.trim():'';
  const currentScope=()=>savedScope || [v,d,r,p].map(label).filter(Boolean).join(', ')+(p.value?', Indonesia':'');
@@ -19,7 +20,7 @@
  }
  function manualMode(){return scrapeModes.some(input=>input.checked&&input.value==='manual');}
  function scrapeReady(){const keywords=customKeywords();return !!v.value&&(!manualMode()||(keywords.length>0&&keywords.length<=100&&keywords.every(x=>[...x].length<=120)));}
- function updateScrapeButton(){if($('scrape-btn'))$('scrape-btn').disabled=!scrapeReady();}
+ function updateScrapeButton(){if($('scrape-btn'))$('scrape-btn').disabled=scrapeRunning||!scrapeReady();}
  function syncScrapeMode(){
   const manual=manualMode(),keywords=customKeywords();
   if(manualPanel)manualPanel.hidden=!manual;
@@ -34,7 +35,7 @@
   ['total','unvisited','planned','visited','revisit','routable'].forEach(key=>$('st-'+key).textContent='—');
   $('progress-bar').value=0;$('progress-text').textContent='Coverage belum tersedia';$('progress-detail').textContent='';
   $('area-snapshot').replaceChildren();$('area-recommendations').replaceChildren();
-  link('route-link','',false);link('merchant-link','',false);$('scrape-btn').disabled=true;
+  link('route-link','',false);link('merchant-link','',false);updateScrapeButton();
  }
  async function load(url,select,index,signal){
   select.replaceChildren(new Option('Memuat…',''));select.disabled=true;
@@ -120,6 +121,28 @@
   }catch(e){if(e.name==='AbortError')return;clearCoverage(e.message);$('coverage-status').textContent='ERROR';$('coverage-message').className='p2-message p2-error';const b=document.createElement('button');b.type='button';b.className='ui-button ui-compact';b.textContent='Coba lagi';b.onclick=()=>loadCoverage(scope);$('coverage-message').append(' ',b);}
   finally{if(!signal.aborted)$('coverage-section').setAttribute('aria-busy','false');syncScrapeMode();}
  }
+ function elapsedLabel(seconds){seconds=Number(seconds)||0;const m=Math.floor(seconds/60),s=seconds%60;return m?`${m}m ${s}s`:`${s}s`;}
+ function renderScrapeState(state){
+  const box=$('scrape-runtime'),phase=$('scrape-phase'),text=$('scrape-status-text'),progress=$('scrape-progress'),elapsed=$('scrape-elapsed'),terminal=$('scrape-terminal'),cancel=$('scrape-cancel'),logWrap=$('scrape-log-wrap'),log=$('scrape-log');
+  const hasState=!!(state&&(state.running||state.started_unix||state.phase||state.message));box.hidden=!hasState;if(!hasState)return;
+  phase.textContent=state.phase||'Menyiapkan';text.textContent=state.message||'Collector siap.';elapsed.textContent=state.started_unix?'Durasi '+elapsedLabel(state.elapsed_seconds):'';
+  if(state.running){progress.removeAttribute('value');terminal.hidden=true;}else{progress.value=(state.phase==='Selesai')?100:0;terminal.hidden=false;terminal.textContent=(state.phase||'READY').toUpperCase();terminal.className='ui-badge '+(state.phase==='Selesai'?'green':state.phase==='Gagal'?'rose':state.phase==='Dibatalkan'?'amber':'slate');}
+  cancel.hidden=!state.can_cancel;cancel.disabled=!!state.cancel_requested;
+  log.textContent=state.log_tail||'';logWrap.hidden=!state.log_tail;
+ }
+ async function pollScrapeStatus(){
+  clearTimeout(scrapeTimer);
+  try{
+   const res=await fetch('/api/collect/status',{cache:'no-store'});if(!res.ok)throw Error('Status scraper gagal dimuat.');
+   const state=await res.json(),wasRunning=scrapeRunning;scrapeRunning=!!state.running;renderScrapeState(state);updateScrapeButton();
+   if(state.running){scrapeTimer=setTimeout(pollScrapeStatus,1500);return;}
+   if(wasRunning&&state.started_unix){const scope=currentScope();if(scope)await loadCoverage(scope);}
+  }catch(err){$('scrape-runtime').hidden=false;$('scrape-status-text').textContent=err.message;scrapeRunning=false;updateScrapeButton();}
+ }
+ $('scrape-cancel').onclick=async()=>{
+  $('scrape-cancel').disabled=true;
+  try{const res=await fetch('/collect/cancel',{method:'POST'});if(!res.ok)throw Error(await res.text());const state=await res.json();scrapeRunning=!!state.running;renderScrapeState(state);scrapeTimer=setTimeout(pollScrapeStatus,1000);}catch(err){$('scrape-status-text').textContent=err.message;$('scrape-cancel').disabled=false;}
+ };
  $('scrape-form').addEventListener('submit',async e=>{
   e.preventDefault();syncScrapeMode();
   const keywords=customKeywords();
@@ -127,10 +150,10 @@
   if(keywords.length>100){$('scrape-message').hidden=false;$('scrape-message').className='p2-message p2-error';$('scrape-message').textContent='Maksimal 100 custom query per sekali scrape.';manualKeywords?.focus();return;}
   if(keywords.some(x=>[...x].length>120)){$('scrape-message').hidden=false;$('scrape-message').className='p2-message p2-error';$('scrape-message').textContent='Setiap custom query maksimal 120 karakter.';manualKeywords?.focus();return;}
   if($('scrape-btn').disabled||!v.value)return;
-  $('scrape-btn').disabled=true;$('scrape-message').hidden=false;$('scrape-message').className='p2-message';$('scrape-message').textContent=manualMode()?`Menjalankan ${keywords.length} custom query${manualIncludeDefaults?.checked?' + preset Bukupay':''}…`:'Menjalankan preset otomatis Bukupay…';
-  try{const res=await fetch('/bukupay/collect',{method:'POST',body:new URLSearchParams(new FormData(e.target))});if(!res.ok)throw Error(await res.text());if(!res.redirected)throw Error('Scrape belum dapat dimulai. Silakan coba lagi.');window.location.assign(res.url);}
-  catch(err){$('scrape-message').className='p2-message p2-error';$('scrape-message').textContent=err.message;updateScrapeButton();}
+  $('scrape-message').hidden=true;scrapeRunning=true;updateScrapeButton();$('scrape-runtime').hidden=false;$('scrape-phase').textContent='Menyiapkan';$('scrape-status-text').textContent=manualMode()?`Menjalankan ${keywords.length} custom query${manualIncludeDefaults?.checked?' + preset Bukupay':''}…`:'Menjalankan preset otomatis Bukupay…';$('scrape-progress').removeAttribute('value');
+  try{const res=await fetch('/bukupay/collect',{method:'POST',body:new URLSearchParams(new FormData(e.target))});if(!res.ok)throw Error((await res.text()).trim()||'Scrape belum dapat dimulai.');const data=await res.json();if(!data.started)throw Error('Scrape belum dapat dimulai.');renderScrapeState(data.state||{});scrapeTimer=setTimeout(pollScrapeStatus,1000);}
+  catch(err){scrapeRunning=false;$('scrape-runtime').hidden=false;$('scrape-phase').textContent='Gagal';$('scrape-status-text').textContent=err.message;$('scrape-progress').value=0;updateScrapeButton();}
  });
- syncScrapeMode();
+ syncScrapeMode();pollScrapeStatus();
  const initial=$('main').dataset.initialScope;if(initial)restore(initial);else chooseCity('DKI JAKARTA','KOTA JAKARTA SELATAN');
 })();
