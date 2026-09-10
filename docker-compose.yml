@@ -9,10 +9,12 @@ services:
     container_name: bukupay-sales
     restart: unless-stopped
     init: true
+    user: "${BUKUPAY_UID:-1000}:${BUKUPAY_GID:-1000}"
     shm_size: "1gb"
     ports:
       - "8082:8082"
     environment:
+      HOME: /tmp
       OSRM_URL: ${OSRM_URL:-http://osrm:5000}
     volumes:
       - ./data:/app/data
