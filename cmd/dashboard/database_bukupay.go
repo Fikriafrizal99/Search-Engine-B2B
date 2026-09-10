@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Fikriafrizal99/Search-Engine-B2B/internal/prospectstore"
@@ -39,7 +40,15 @@ func (w *captureResponseWriter) Write(p []byte) (int, error) {
 	return w.body.Write(p)
 }
 
-var bukupayDatabaseTmpl = template.Must(template.Must(template.New("bukupay-database").Funcs(funcs).Parse(bukupayDatabaseHTML)).ParseFS(uiAssets, "ui/shared.html"))
+var bukupayDatabaseTmpl = template.Must(template.Must(template.New("bukupay-database").Funcs(funcs).Funcs(template.FuncMap{
+	"databaseShortArea": func(area string) string {
+		parts := strings.Split(area, ",")
+		if len(parts) > 2 {
+			parts = parts[:2]
+		}
+		return strings.TrimSpace(strings.Join(parts, ","))
+	},
+}).Parse(bukupayDatabaseHTML)).ParseFS(uiAssets, "ui/shared.html"))
 
 func (a *app) handleBukupayDatabase(w http.ResponseWriter, r *http.Request) {
 	f := filterFromRequest(r)
