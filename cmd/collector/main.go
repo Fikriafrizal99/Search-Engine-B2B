@@ -6,17 +6,51 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/Fikriafrizal99/Search-Engine-B2B/internal/collectorconfig"
 	"github.com/Fikriafrizal99/Search-Engine-B2B/internal/collectorpost"
 	"github.com/Fikriafrizal99/Search-Engine-B2B/internal/prospectstore"
 )
+
+const scraperExitGrace = 5 * time.Second
+const scraperKillGrace = 10 * time.Second
+
+type scrapeExitWatcher struct {
+	mu     sync.Mutex
+	dst    io.Writer
+	tail   string
+	exited chan struct{}
+	once   sync.Once
+}
+
+func newScrapeExitWatcher(dst io.Writer) *scrapeExitWatcher {
+	return &scrapeExitWatcher{dst: dst, exited: make(chan struct{})}
+}
+
+func (w *scrapeExitWatcher) Write(p []byte) (int, error) {
+	n, err := w.dst.Write(p)
+	w.mu.Lock()
+	w.tail += string(p)
+	if len(w.tail) > 4096 {
+		w.tail = w.tail[len(w.tail)-4096:]
+	}
+	if strings.Contains(w.tail, "scrapemate exited") {
+		w.once.Do(func() { close(w.exited) })
+	}
+	w.mu.Unlock()
+	return n, err
+}
+
+func (w *scrapeExitWatcher) Exited() <-chan struct{} { return w.exited }
 
 func main() {
 	presetName := flag.String("preset", "bukupay-merchants", "preset name")
@@ -28,7 +62,7 @@ func main() {
 	configDir := flag.String("config-dir", "config", "config directory")
 	engine := flag.String("engine", filepath.FromSlash("bin/google_maps_scraper"), "path to upstream google maps scraper binary")
 	output := flag.String("output", filepath.FromSlash("data/prospects.csv"), "normalized merchant CSV output")
-	dbPath := flag.String("db", filepath.FromSlash("data/prospects.db"), "SQLite merchant prospect database")
+	dbPath := flag.String("db", filepath.FromSlash("data/bukupay.db"), "SQLite merchant prospect database")
 	noDB := flag.Bool("no-db", false, "skip database import")
 	keepRaw := flag.Bool("keep-raw", false, "keep temporary raw files")
 	flag.Parse()
@@ -102,12 +136,43 @@ func main() {
 	args := []string{"-input", queryFile, "-results", rawFile}
 	args = append(args, flag.Args()...)
 	cmd := exec.CommandContext(runCtx, *engine, args...)
-	cmd.Stdout, cmd.Stderr, cmd.Stdin = os.Stdout, os.Stderr, os.Stdin
-	if err := cmd.Run(); err != nil {
+	watcher := newScrapeExitWatcher(os.Stdout)
+	cmd.Stdout, cmd.Stderr, cmd.Stdin = watcher, watcher, os.Stdin
+	if err := cmd.Start(); err != nil {
+		fatalf("scraper failed to start: %v", err)
+	}
+
+	waitCh := make(chan error, 1)
+	go func() { waitCh <- cmd.Wait() }()
+	var waitErr error
+	forcedShutdown := false
+	select {
+	case waitErr = <-waitCh:
+	case <-watcher.Exited():
+		select {
+		case waitErr = <-waitCh:
+		case <-time.After(scraperExitGrace):
+			forcedShutdown = true
+			fmt.Println("PHASE scraper-shutdown-recovery")
+			fmt.Printf("WARN scraper still running %s after scrapemate exited; requesting shutdown\n", scraperExitGrace)
+			_ = cmd.Process.Signal(os.Interrupt)
+			select {
+			case waitErr = <-waitCh:
+			case <-time.After(scraperKillGrace):
+				fmt.Printf("WARN scraper did not stop after another %s; forcing process exit\n", scraperKillGrace)
+				_ = cmd.Process.Kill()
+				waitErr = <-waitCh
+			}
+		}
+	}
+	if waitErr != nil {
 		if errors.Is(runCtx.Err(), context.Canceled) {
 			fatalf("scraper cancelled")
 		}
-		fatalf("scraper failed: %v", err)
+		if !forcedShutdown || !rawCSVReady(rawFile) {
+			fatalf("scraper failed: %v", waitErr)
+		}
+		fmt.Printf("WARN scraper shutdown returned %v after completion marker; raw CSV is available, continuing\n", waitErr)
 	}
 
 	if err := runCtx.Err(); err != nil {
@@ -155,6 +220,11 @@ func main() {
 	if *keepRaw {
 		fmt.Printf("Raw: %s\n", tmpDir)
 	}
+}
+
+func rawCSVReady(path string) bool {
+	st, err := os.Stat(path)
+	return err == nil && st.Size() > 0
 }
 
 func writeQueries(path string, queries []string) error {
