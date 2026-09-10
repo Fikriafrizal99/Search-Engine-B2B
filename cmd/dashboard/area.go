@@ -11,7 +11,7 @@ import (
 )
 
 type coverageResponse struct {
-	Exists   bool                           `json:"exists"`
+	Exists   bool                            `json:"exists"`
 	Progress prospectstore.CoverageProgress `json:"progress"`
 	Snapshot prospectstore.AreaSnapshot     `json:"snapshot"`
 }
