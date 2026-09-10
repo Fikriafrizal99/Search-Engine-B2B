@@ -12,7 +12,7 @@ import (
 )
 
 func TestP1VisitSessionIsExecutionFocused(t *testing.T) {
-	for _, want := range []string{"FIELD EXECUTION", "Catat Hasil", "Riwayat Interaksi", "Progress Rute"} {
+	for _, want := range []string{"FIELD EXECUTION", "Catat Hasil", "Riwayat Interaksi", "Progress Rute", "Update Visit Merchant", "Koreksi Visit Terakhir", "Riwayat Visit"} {
 		if !strings.Contains(contactHTML, want) {
 			t.Fatalf("Visit Session missing %q", want)
 		}
@@ -25,18 +25,18 @@ func TestP1VisitSessionIsExecutionFocused(t *testing.T) {
 }
 
 func TestP1SalesWorkspaceKeepsOnlyPrimarySalesFields(t *testing.T) {
-	for _, want := range []string{"Sales Workspace", "Progress Sales", "Status Sales", "Punya QRIS?", "Provider QRIS", "Punya Soundbox?", "Next Action", "Tanggal Follow-up", "Simpan Progress", "Riwayat & Koreksi Visit"} {
+	for _, want := range []string{"Sales Workspace", "Progress Sales", "Status Sales", "Punya QRIS?", "Provider QRIS", "Punya Soundbox?", "Next Action", "Tanggal Follow-up", "Simpan Progress", "Sales History", "Visit Session"} {
 		if !strings.Contains(merchantHTML, want) {
 			t.Fatalf("Sales Workspace missing %q", want)
 		}
 	}
-	for _, unwanted := range []string{"<h2>Informasi Merchant</h2>", "Traffic Merchant", "Level Transaksi", "Status Registrasi", "Status Instalasi", "Status Aktivasi"} {
+	for _, unwanted := range []string{"<h2>Informasi Merchant</h2>", "Traffic Merchant", "Level Transaksi", "Status Registrasi", "Status Instalasi", "Status Aktivasi", "Riwayat & Koreksi Visit", "Koreksi Visit Terakhir"} {
 		if strings.Contains(merchantHTML, unwanted) {
-			t.Fatalf("Sales Workspace still exposes secondary field %q", unwanted)
+			t.Fatalf("Sales Workspace still exposes secondary/visit field %q", unwanted)
 		}
 	}
-	if !strings.Contains(merchantHTML, "sales-workspace-stepper") || !strings.Contains(merchantHTML, "Koreksi Visit Terakhir") {
-		t.Fatal("sales stage stepper or visit correction access missing")
+	if !strings.Contains(merchantHTML, "sales-workspace-stepper") {
+		t.Fatal("sales stage stepper missing")
 	}
 }
 
