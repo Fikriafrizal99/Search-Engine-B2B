@@ -184,10 +184,9 @@ func (s *Store) CorrectLatestVisit(ctx context.Context, visitID int64, in VisitR
 	if err := syncExecutionDirectTx(ctx, tx, in.ProspectID, executionStatus, nextAction, nextValue, nowValue); err != nil {
 		return VisitState{}, err
 	}
-	if pic != "" {
-		if _, err := tx.ExecContext(ctx, `UPDATE lead_execution SET owner=?,updated_at=? WHERE prospect_id=?`, pic, nowValue, in.ProspectID); err != nil {
-			return VisitState{}, err
-		}
+	if _, err := tx.ExecContext(ctx, `UPDATE lead_execution SET last_contact_at=?,last_result=?,owner=CASE WHEN ?<>'' THEN ? ELSE owner END,updated_at=? WHERE prospect_id=?`,
+		nowValue, result, pic, pic, nowValue, in.ProspectID); err != nil {
+		return VisitState{}, err
 	}
 	if err := applyCorrectedMerchantStatusTx(ctx, tx, in.ProspectID, result, pic, note, nextValue, nowValue); err != nil {
 		return VisitState{}, err
