@@ -89,3 +89,29 @@ func TestCollectorRecoveryPhaseLabels(t *testing.T) {
 		t.Fatalf("normalize label = %q", got)
 	}
 }
+
+func TestRouteFormAutoSelectsSoleAvailableArea(t *testing.T) {
+	a, _, plan := setupP0RouteTest(t)
+	w := httptest.NewRecorder()
+	a.handleVisitPlanForm(w, httptest.NewRequest(http.MethodGet, "/visit-plans/new", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("route form: %d %s", w.Code, w.Body.String())
+	}
+	want := `name="location" value="` + plan.LocationScope + `"`
+	if !strings.Contains(w.Body.String(), want) {
+		t.Fatalf("route form did not auto-select sole area %q: %s", plan.LocationScope, w.Body.String())
+	}
+}
+
+func TestDashboardRouteCreationCarriesSoleArea(t *testing.T) {
+	a, _, plan := setupP0RouteTest(t)
+	w := httptest.NewRecorder()
+	a.handleSalesDashboard(w, httptest.NewRequest(http.MethodGet, "/sales", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("dashboard: %d %s", w.Code, w.Body.String())
+	}
+	want := "location=" + url.QueryEscape(plan.LocationScope)
+	if !strings.Contains(w.Body.String(), want) {
+		t.Fatalf("dashboard route creation link missing sole area %q", plan.LocationScope)
+	}
+}
