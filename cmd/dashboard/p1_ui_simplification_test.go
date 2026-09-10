@@ -12,20 +12,23 @@ import (
 )
 
 func TestP1VisitSessionIsExecutionFocused(t *testing.T) {
-	for _, want := range []string{"FIELD EXECUTION", "Catat Hasil", "Riwayat Interaksi", "Progress Rute", "Update Visit Merchant", "Koreksi Visit Terakhir", "Riwayat Visit"} {
+	for _, want := range []string{"Catat Hasil Visit", "Riwayat Interaksi", "Progress Rute", "Update Visit", "Koreksi Visit Terakhir", "Riwayat Visit"} {
 		if !strings.Contains(contactHTML, want) {
 			t.Fatalf("Visit Session missing %q", want)
 		}
 	}
-	for _, unwanted := range []string{"<h2>Sales Pipeline</h2>", "Statistik Visit Session", "Session Summary"} {
+	for _, unwanted := range []string{"FIELD EXECUTION", "<h2>Sales Pipeline</h2>", "Statistik Visit Session", "Session Summary", "Sales Detail"} {
 		if strings.Contains(contactHTML, unwanted) {
-			t.Fatalf("Visit Session still contains redundant section %q", unwanted)
+			t.Fatalf("Visit Session still contains redundant section/copy %q", unwanted)
 		}
+	}
+	if strings.Index(contactHTML, "Catat Hasil Visit") > strings.Index(contactHTML, "Update Visit") {
+		t.Fatal("Visit result form must stay ahead of visit history/update card")
 	}
 }
 
 func TestP1SalesWorkspaceKeepsOnlyPrimarySalesFields(t *testing.T) {
-	for _, want := range []string{"Sales Workspace", "Progress Sales", "Status Sales", "Punya QRIS?", "Provider QRIS", "Punya Soundbox?", "Next Action", "Tanggal Follow-up", "Simpan Progress", "Sales History", "Visit Session"} {
+	for _, want := range []string{"Sales Workspace", "Progress Sales", "Status Sales", "Punya QRIS?", "Provider QRIS", "Punya Soundbox?", "Tindakan Berikutnya", "Tanggal Follow-up", "Simpan Progress", "Riwayat Sales", "Visit Session"} {
 		if !strings.Contains(merchantHTML, want) {
 			t.Fatalf("Sales Workspace missing %q", want)
 		}
@@ -53,9 +56,9 @@ func TestP1RouteUsesCompactStops(t *testing.T) {
 	if !strings.Contains(visitPlanHTML, "p3-stop-compact") || !strings.Contains(visitPlanHTML, "p3-stop-address") {
 		t.Fatal("route does not use compact stop layout")
 	}
-	for _, unwanted := range []string{"Call", "WhatsApp"} {
+	for _, unwanted := range []string{"Call", "WhatsApp", "Haversine", "OSRM", "Routing"} {
 		if strings.Contains(visitPlanHTML, unwanted) {
-			t.Fatalf("route overview still contains execution action %q", unwanted)
+			t.Fatalf("route overview still contains execution/technical copy %q", unwanted)
 		}
 	}
 }
@@ -63,6 +66,9 @@ func TestP1RouteUsesCompactStops(t *testing.T) {
 func TestP1AreaPlannerShowsSingleStateDrivenNextAction(t *testing.T) {
 	if !strings.Contains(areaHTML, "Langkah Berikutnya") {
 		t.Fatal("Area Planner next-action section missing")
+	}
+	if !strings.Contains(areaHTML, `class="area-advanced"`) || !strings.Contains(areaHTML, "Pengaturan Pencarian") {
+		t.Fatal("advanced scrape controls must be collapsed behind an optional section")
 	}
 	data, err := uiAssets.ReadFile("ui/area-planner.js")
 	if err != nil {
@@ -78,13 +84,15 @@ func TestP1AreaPlannerShowsSingleStateDrivenNextAction(t *testing.T) {
 }
 
 func TestP1DatabaseKeepsScrapeControlInAreaPlanner(t *testing.T) {
-	for _, want := range []string{"Database Merchant", "Kelola Scrape Area", "Informasi saja. Start, cancel, dan progress lengkap ada di Area Planner."} {
+	for _, want := range []string{"Database Merchant", "Status Pengambilan Data", "Pengaturan lengkap ada di Area Planner.", "Ringkasan Data"} {
 		if !strings.Contains(bukupayDatabaseHTML, want) {
 			t.Fatalf("Database cleanup missing %q", want)
 		}
 	}
-	if strings.Contains(bukupayDatabaseHTML, `action="/bukupay/collect"`) {
-		t.Fatal("Database duplicates scrape controls")
+	for _, unwanted := range []string{`action="/bukupay/collect"`, "Location Scope", "database-flow", "Peran Database"} {
+		if strings.Contains(bukupayDatabaseHTML, unwanted) {
+			t.Fatalf("Database still exposes duplicate/technical UI %q", unwanted)
+		}
 	}
 }
 
