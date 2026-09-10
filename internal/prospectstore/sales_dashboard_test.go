@@ -76,13 +76,10 @@ func TestSalesDashboardLiveSummary(t *testing.T) {
 	if summary.TomorrowRoute.ID != 4 || summary.TomorrowRoute.DurationAvailable || summary.TomorrowRoute.RoutingSource != "haversine" {
 		t.Fatalf("legacy route: %+v", summary.TomorrowRoute)
 	}
-	if len(summary.Priorities) != 3 {
-		t.Fatalf("priorities: %+v", summary.Priorities)
-	}
-	for i, id := range []int64{2, 5, 4} {
-		if summary.Priorities[i].Prospect.ID != id {
-			t.Fatalf("priority order/future revisit: %+v", summary.Priorities)
-		}
+	// Due merchants already assigned to any non-cancelled route today are owned
+	// by the route card, not duplicated in dashboard priorities. Only #5 remains.
+	if len(summary.Priorities) != 1 || summary.Priorities[0].Prospect.ID != 5 {
+		t.Fatalf("priorities outside route: %+v", summary.Priorities)
 	}
 	if len(summary.Activities) != 5 || summary.Activities[0].ProspectID != 5 || len(summary.Areas) != 3 {
 		t.Fatalf("activity/areas: %+v", summary)
