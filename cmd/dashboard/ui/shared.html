@@ -11,6 +11,26 @@
 <a href="/database" {{if eq . "database"}}aria-current="page"{{end}}>{{template "ui-icon" "database"}}Database</a>
 </nav>
 </div></header>
+{{if eq . "contact"}}
+<template id="daily-visit-report-template">
+<details class="ui-card p3-panel" id="daily-visit-report" style="margin-bottom:16px">
+<summary><strong>Report Harian</strong><span class="ui-muted">Ringkasan hasil visit siap dicopy</span></summary>
+<div style="margin-top:14px">
+<form id="daily-report-form" class="p3-form-grid" style="align-items:end">
+<label class="p3-field">Tanggal<input id="daily-report-date" type="date" required></label>
+<label class="p3-field">Area<select id="daily-report-area"><option value="">Semua Area</option></select></label>
+<div><button class="ui-button ui-primary" type="submit">Tampilkan Report</button></div>
+</form>
+<p id="daily-report-status" class="ui-muted" style="margin:10px 0 0">Buka card untuk menyiapkan report.</p>
+<div id="daily-report-output" hidden style="margin-top:12px">
+<label class="p3-field">Report Siap Copy<textarea id="daily-report-text" readonly style="min-height:420px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;line-height:1.55"></textarea></label>
+<div class="p3-actions" style="margin-top:10px"><button class="ui-button ui-primary" id="daily-report-copy" type="button">Copy Report</button><span id="daily-report-copy-status" class="ui-muted" aria-live="polite"></span></div>
+</div>
+</div>
+</details>
+</template>
+<script src="/assets/daily-visit-report.js" defer></script>
+{{end}}
 {{end}}
 {{define "ui-symbols"}}
 <svg xmlns="http://www.w3.org/2000/svg" class="ui-symbols" aria-hidden="true"><defs>
