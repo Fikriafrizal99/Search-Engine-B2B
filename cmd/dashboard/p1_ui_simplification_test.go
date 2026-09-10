@@ -78,7 +78,7 @@ func TestP1AreaPlannerShowsSingleStateDrivenNextAction(t *testing.T) {
 }
 
 func TestP1DatabaseKeepsScrapeControlInAreaPlanner(t *testing.T) {
-	for _, want := range []string{"Database Merchant", "Kelola Scrape Area", "Informasi saja. Start/cancel/progress lengkap ada di Area Planner."} {
+	for _, want := range []string{"Database Merchant", "Kelola Scrape Area", "Informasi saja. Start, cancel, dan progress lengkap ada di Area Planner."} {
 		if !strings.Contains(bukupayDatabaseHTML, want) {
 			t.Fatalf("Database cleanup missing %q", want)
 		}
