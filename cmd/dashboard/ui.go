@@ -30,4 +30,14 @@ func registerUIAssets(mux *http.ServeMux) {
 		_, _ = w.Write([]byte("\n"))
 		_, _ = w.Write(fixes)
 	})
+	mux.HandleFunc("GET /assets/daily-visit-report.js", func(w http.ResponseWriter, r *http.Request) {
+		js, err := uiAssets.ReadFile("ui/daily-visit-report.js")
+		if err != nil {
+			http.Error(w, "script unavailable", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		_, _ = w.Write(js)
+	})
 }
