@@ -10,17 +10,17 @@ import (
 )
 
 type dailyVisitReportResponse struct {
-	Date          string         `json:"date"`
-	DateLabel     string         `json:"date_label"`
-	Location      string         `json:"location"`
-	Areas         []string       `json:"areas"`
-	Text          string         `json:"text"`
-	RouteTarget   int            `json:"route_target"`
-	RouteDone     int            `json:"route_done"`
-	RouteRemaining int           `json:"route_remaining"`
-	TotalVisited  int            `json:"total_visited"`
-	Completion    float64        `json:"completion_percent"`
-	ResultCounts  map[string]int `json:"result_counts"`
+	Date           string         `json:"date"`
+	DateLabel      string         `json:"date_label"`
+	Location       string         `json:"location"`
+	Areas          []string       `json:"areas"`
+	Text           string         `json:"text"`
+	RouteTarget    int            `json:"route_target"`
+	RouteDone      int            `json:"route_done"`
+	RouteRemaining int            `json:"route_remaining"`
+	TotalVisited   int            `json:"total_visited"`
+	Completion     float64        `json:"completion_percent"`
+	ResultCounts   map[string]int `json:"result_counts"`
 }
 
 func (a *app) handleDailyVisitReport(w http.ResponseWriter, r *http.Request) {
@@ -47,23 +47,23 @@ func (a *app) handleDailyVisitReport(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, dailyVisitReportResponse{
-		Date: report.Date,
-		DateLabel: dailyReportDateLabel(report.Date),
-		Location: report.LocationScope,
-		Areas: areas,
-		Text: buildDailyVisitReportText(report),
-		RouteTarget: report.RouteTarget,
-		RouteDone: report.RouteDone,
+		Date:           report.Date,
+		DateLabel:      dailyReportDateLabel(report.Date),
+		Location:       report.LocationScope,
+		Areas:          areas,
+		Text:           buildDailyVisitReportText(report),
+		RouteTarget:    report.RouteTarget,
+		RouteDone:      report.RouteDone,
 		RouteRemaining: report.RouteRemaining,
-		TotalVisited: report.TotalVisited,
-		Completion: report.CompletionPercent,
-		ResultCounts: report.ResultCounts,
+		TotalVisited:   report.TotalVisited,
+		Completion:     report.CompletionPercent,
+		ResultCounts:   report.ResultCounts,
 	})
 }
 
 func buildDailyVisitReportText(report prospectstore.DailyVisitReport) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "BUKUPAY — DAILY VISIT REPORT\n")
+	fmt.Fprintf(&b, "BUKUPAY — REPORT VISIT HARIAN\n")
 	fmt.Fprintf(&b, "Tanggal: %s\n", dailyReportDateLabel(report.Date))
 	fmt.Fprintf(&b, "Area: %s\n\n", dailyReportAreaLabel(report.LocationScope))
 
@@ -73,9 +73,9 @@ func buildDailyVisitReportText(report prospectstore.DailyVisitReport) string {
 	fmt.Fprintf(&b, "Sisa Rute          : %d merchant\n", report.RouteRemaining)
 	fmt.Fprintf(&b, "Visit Tercatat     : %d merchant\n", report.TotalVisited)
 	if report.RouteTarget > 0 {
-		fmt.Fprintf(&b, "Completion         : %.1f%%\n", report.CompletionPercent)
+		fmt.Fprintf(&b, "Penyelesaian       : %.1f%%\n", report.CompletionPercent)
 	} else {
-		fmt.Fprintf(&b, "Completion         : -\n")
+		fmt.Fprintf(&b, "Penyelesaian       : -\n")
 	}
 
 	fmt.Fprintf(&b, "\nHASIL VISIT\n")
@@ -102,9 +102,9 @@ func buildDailyVisitReportText(report prospectstore.DailyVisitReport) string {
 		conversion = 100 * float64(interested) / float64(report.TotalVisited)
 	}
 	fmt.Fprintf(&b, "\nLEAD DARI HASIL VISIT\n")
-	fmt.Fprintf(&b, "Interested         : %d\n", interested)
-	fmt.Fprintf(&b, "Follow Up          : %d\n", followUp)
-	fmt.Fprintf(&b, "Visit → Interested : %.1f%%\n", conversion)
+	fmt.Fprintf(&b, "Tertarik           : %d\n", interested)
+	fmt.Fprintf(&b, "Follow-up          : %d\n", followUp)
+	fmt.Fprintf(&b, "Visit → Tertarik   : %.1f%%\n", conversion)
 
 	fmt.Fprintf(&b, "\nREVISIT\n")
 	fmt.Fprintf(&b, "Owner Tidak Ada    : %d\n", report.ResultCounts["owner_not_found"])
@@ -123,7 +123,7 @@ func buildDailyVisitReportText(report prospectstore.DailyVisitReport) string {
 				fmt.Fprintf(&b, "   PIC: -\n")
 			}
 			fmt.Fprintf(&b, "   Jam: %s\n", dailyReportTimeLabel(item.VisitedAt))
-			fmt.Fprintf(&b, "   Next: %s\n", dailyReportNextAction(item))
+			fmt.Fprintf(&b, "   Berikutnya: %s\n", dailyReportNextAction(item))
 			if strings.TrimSpace(item.Note) != "" {
 				fmt.Fprintf(&b, "   Catatan: %s\n", strings.TrimSpace(item.Note))
 			}
