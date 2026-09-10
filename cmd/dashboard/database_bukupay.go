@@ -67,6 +67,9 @@ func (a *app) handleBukupayDatabase(w http.ResponseWriter, r *http.Request) {
 	renderPhase2(w, bukupayDatabaseTmpl, data)
 }
 
+// handleBukupayCollect starts the existing collector but returns JSON instead of
+// forwarding the collector's legacy redirect. Area Planner owns the operational
+// scrape workflow and polls /api/collect/status until the job finishes.
 func (a *app) handleBukupayCollect(w http.ResponseWriter, r *http.Request) {
 	capture := &captureResponseWriter{}
 	a.handleCollect(capture, r)
@@ -80,7 +83,10 @@ func (a *app) handleBukupayCollect(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(capture.body.Bytes())
 		return
 	}
-	http.Redirect(w, r, "/database?collect=started", http.StatusSeeOther)
+	writeJSON(w, struct {
+		Started bool         `json:"started"`
+		State   collectState `json:"state"`
+	}{Started: true, State: a.collectStatus()})
 }
 
 //go:embed database_bukupay.html
