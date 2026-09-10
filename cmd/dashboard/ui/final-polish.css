@@ -1,0 +1,439 @@
+/* Final Bukupay UI polish: one visual language across dashboard, planning, visit, sales and database. */
+:root {
+  --ui-width: 1260px;
+  --ui-radius: 13px;
+  --ui-shadow: 0 1px 3px rgba(18, 39, 67, .06);
+}
+
+.ui-body {
+  background: #f5f7fb;
+  color: #122038;
+  font-family: "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ui-body .ui-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #10243f;
+  box-shadow: 0 1px 0 rgba(255,255,255,.06);
+}
+
+.ui-body .ui-topbar-inner {
+  min-height: 60px;
+  padding: 8px 24px;
+  gap: clamp(22px, 7vw, 90px);
+}
+
+.ui-body .ui-brand {
+  gap: 10px;
+  font-size: 21px;
+  letter-spacing: -.35px;
+}
+
+.ui-body .ui-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  box-shadow: none;
+}
+
+.ui-body .ui-nav a {
+  min-height: 40px;
+  padding: 9px 13px;
+  border-radius: 9px;
+  color: #dce6f4;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ui-body .ui-nav a[aria-current="page"] {
+  background: rgba(255,255,255,.11);
+  box-shadow: none;
+}
+
+.ui-body .ui-container {
+  max-width: var(--ui-width);
+  padding: 24px 24px 32px;
+}
+
+.ui-body .ui-card,
+.ui-body .phase3 .p3-card {
+  border-color: #e2e8f0;
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow);
+}
+
+.ui-body .ui-eyebrow {
+  display: none;
+}
+
+.ui-body .sales-heading,
+.ui-body .phase2 .p2-heading,
+.ui-body .phase3 .p3-heading {
+  margin-bottom: 16px;
+}
+
+.ui-body .sales-heading h1,
+.ui-body .phase2 h1,
+.ui-body .phase3 h1 {
+  margin: 0 0 4px;
+  font-size: 29px;
+  line-height: 1.2;
+  letter-spacing: -.55px;
+  font-weight: 780;
+}
+
+.ui-body .ui-subtitle {
+  max-width: 760px;
+  color: #697890;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.ui-body .ui-muted {
+  color: #718097;
+  font-size: 12.5px;
+}
+
+.ui-body .ui-sectionhead {
+  margin-bottom: 12px;
+}
+
+.ui-body .ui-sectiontitle h2 {
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 750;
+}
+
+.ui-body .ui-sectiontitle p {
+  margin-top: 3px;
+  font-size: 12.5px;
+}
+
+.ui-body .ui-button {
+  min-height: 40px;
+  padding: 8px 13px;
+  border-color: #d8e1ec;
+  border-radius: 9px;
+  color: #28496f !important;
+  background: #fff;
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.ui-body .ui-button:hover {
+  border-color: #b9c8dc;
+  background: #f8fafc;
+  box-shadow: none;
+  filter: none;
+}
+
+.ui-body .ui-primary {
+  border-color: #1764df;
+  background: #1764df;
+  color: #fff !important;
+}
+
+.ui-body .ui-primary:hover {
+  border-color: #1059cc;
+  background: #1059cc;
+}
+
+.ui-body .ui-outline {
+  border-color: #d8e1ec;
+  color: #28496f !important;
+}
+
+.ui-body .ui-success {
+  border-color: #cde9dd;
+  background: #f0fbf6;
+  color: #08734d !important;
+}
+
+.ui-body .ui-badge {
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ui-body .ui-chip {
+  min-height: 38px;
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+
+.ui-body .phase2 .p2-panel,
+.ui-body .phase3 .p3-panel {
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.ui-body .phase2 .p2-field,
+.ui-body .phase3 .p3-field {
+  gap: 6px;
+  color: #42536b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ui-body .phase2 .p2-field input,
+.ui-body .phase2 .p2-field select,
+.ui-body .phase2 .p2-field textarea,
+.ui-body .phase3 .p3-field input,
+.ui-body .phase3 .p3-field select,
+.ui-body .phase3 .p3-field textarea {
+  min-height: 42px;
+  border-color: #dce4ee;
+  border-radius: 9px;
+  color: #122038;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.ui-body .phase3 .p3-field textarea {
+  min-height: 92px;
+}
+
+.ui-body .phase3 .p3-info {
+  padding: 10px 11px;
+  border-color: #e7edf4;
+  border-radius: 9px;
+  background: #fbfcfe;
+}
+
+.ui-body .phase3 .p3-info small {
+  margin-bottom: 3px;
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.ui-body .phase3 .p3-info strong,
+.ui-body .phase3 .p3-info span {
+  font-size: 13.5px;
+  line-height: 1.42;
+}
+
+.ui-body .phase3 .p3-insight {
+  padding: 11px;
+  gap: 4px;
+  border-color: #e3eaf2;
+  border-radius: 9px;
+  background: #fbfcfe;
+}
+
+.ui-body .phase3 .p3-insight > span,
+.ui-body .phase3 .p3-insight > .ui-muted:first-child {
+  font-size: 11.5px;
+}
+
+.ui-body .phase3 .p3-insight strong {
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.ui-body .phase3 .p3-table th,
+.ui-body .phase2 .p2-table th {
+  font-size: 11.5px;
+}
+
+.ui-body .phase3 .p3-table td,
+.ui-body .phase2 .p2-table td {
+  font-size: 12.5px;
+}
+
+.ui-body .phase3 .p3-note,
+.ui-body .phase2 .p2-message {
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+
+/* Dashboard: less card bulk, more scanning. */
+.ui-body .sales-kpis {
+  gap: 9px;
+}
+
+.ui-body .sales-kpi {
+  min-height: 92px;
+  padding: 14px;
+  gap: 14px;
+}
+
+.ui-body .sales-kpi strong {
+  font-size: 25px;
+}
+
+.ui-body .sales-overview,
+.ui-body .sales-bottom {
+  gap: 10px;
+}
+
+.ui-body .sales-route,
+.ui-body .sales-coverage,
+.ui-body .sales-pipeline,
+.ui-body .sales-bottom > section {
+  padding: 15px;
+}
+
+/* Area Planner: keep operator controls readable, never tiny on mobile. */
+.ui-body .phase2 .area-modes strong {
+  font-size: 12.5px;
+}
+
+.ui-body .phase2 .area-modes small {
+  font-size: 11.5px;
+}
+
+.ui-body .phase2 .area-stats > div > div,
+.ui-body .phase2 .area-stats small,
+.ui-body .phase2 .area-snapshot p,
+.ui-body .phase2 .area-recommendations {
+  font-size: 12.5px;
+}
+
+.ui-body .phase2 .area-stats strong {
+  font-size: 24px;
+}
+
+.area-advanced {
+  margin: 14px 0;
+  border-top: 1px solid #e5ebf2;
+  border-bottom: 1px solid #e5ebf2;
+}
+
+.area-advanced > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 46px;
+  cursor: pointer;
+  list-style: none;
+  color: #38536f;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.area-advanced > summary::-webkit-details-marker { display: none; }
+.area-advanced > summary::after { content: "+"; color: #7b8a9f; font-size: 18px; }
+.area-advanced[open] > summary::after { content: "−"; }
+.area-advanced > .scrape-query { margin-top: 0; }
+
+/* Visit Session: field action first, history/report secondary. */
+.ui-body .phase3 .p3-execution-grid {
+  grid-template-columns: minmax(0, 1.7fr) minmax(260px, .6fr);
+}
+
+.ui-body .phase3 .p3-current-merchant {
+  border-color: #d8e3f1;
+  box-shadow: 0 2px 8px rgba(22, 54, 90, .05);
+}
+
+.ui-body .phase3 .p3-merchant-title {
+  font-size: 23px;
+}
+
+.ui-body .phase3 .p3-result-panel {
+  border-color: #cfe0f7;
+}
+
+.ui-body .phase3 .p3-result-panel .p3-save .ui-button {
+  min-width: 220px;
+}
+
+.ui-body .phase3 .p3-visit-update .p3-insights,
+.ui-body .phase3 aside .p3-insights {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ui-body #daily-visit-report {
+  margin-top: 18px;
+}
+
+.ui-body #daily-visit-report > summary,
+.ui-body .phase3 .p3-history-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.ui-body #daily-visit-report > summary::-webkit-details-marker { display: none; }
+.ui-body #daily-visit-report > summary::after { content: "+"; color: #718097; font-size: 18px; }
+.ui-body #daily-visit-report[open] > summary::after { content: "−"; }
+.ui-body #daily-report-text { min-height: 330px !important; font-size: 13px !important; }
+
+/* Sales: narrow reading width and calm controls. */
+.ui-body .sales-workspace {
+  max-width: 940px;
+}
+
+.ui-body .sales-workspace-merchant,
+.ui-body .sales-workspace-card,
+.ui-body .sales-workspace-details {
+  border-radius: 13px;
+}
+
+.ui-body .sales-workspace-title-row h2 {
+  font-size: 21px;
+}
+
+.ui-body .sales-workspace-stepper {
+  margin-bottom: 14px;
+}
+
+.ui-body .sales-step {
+  font-size: 11.5px;
+}
+
+.ui-body .sales-workspace-list-card {
+  border: 1px solid #e2e8f0;
+  box-shadow: none;
+}
+
+/* Database: admin-oriented but readable and quiet. */
+.ui-body .database-page .database-insight-card {
+  min-height: 112px;
+}
+
+.ui-body .database-page .database-insight-value {
+  font-size: 20px;
+}
+
+@media (max-width: 900px) {
+  .ui-body .sales-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ui-body .sales-overview { grid-template-columns: 1fr; }
+  .ui-body .phase3 .p3-execution-grid { grid-template-columns: 1fr; }
+  .ui-body .phase3 .p3-visit-update .p3-insights,
+  .ui-body .phase3 aside .p3-insights { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .ui-body { font-size: 14px; }
+  .ui-body .ui-topbar-inner { padding: 7px 12px; gap: 10px; }
+  .ui-body .ui-brand { font-size: 18px; }
+  .ui-body .ui-logo { width: 31px; height: 31px; }
+  .ui-body .ui-nav a { min-height: 38px; padding: 8px 10px; font-size: 12px; }
+  .ui-body .ui-container { padding: 16px 12px 26px; }
+  .ui-body .sales-heading h1,
+  .ui-body .phase2 h1,
+  .ui-body .phase3 h1 { font-size: 25px; }
+  .ui-body .ui-subtitle { font-size: 13.5px; }
+  .ui-body .phase2 .p2-panel,
+  .ui-body .phase3 .p3-panel { padding: 13px; }
+  .ui-body .phase2 .area-modes strong { font-size: 12px; }
+  .ui-body .phase2 .area-modes small { font-size: 11px; }
+  .ui-body .phase3 .p3-result-panel .p3-save .ui-button { width: 100%; min-width: 0; }
+  .ui-body .phase3 .p3-visit-update .p3-insights,
+  .ui-body .phase3 aside .p3-insights { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .ui-body .phase3 .p3-insight { padding: 9px 7px; }
+  .ui-body .phase3 .p3-insight strong { font-size: 16px; }
+  .ui-body .sales-kpis { grid-template-columns: 1fr 1fr; }
+  .ui-body .sales-kpi { min-height: 82px; padding: 12px; }
+  .ui-body .sales-kpi strong { font-size: 22px; }
+}
