@@ -1,0 +1,114 @@
+/* Database page only: keep the admin database usable on narrow mobile browsers. */
+.database-page,
+.database-page > *,
+.database-page .p3-grid,
+.database-page .p3-grid > *,
+.database-page .p3-panel,
+.database-page .p3-table-wrap {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.database-page .p3-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 680px) {
+  html,
+  body.ui-body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .database-page {
+    width: 100%;
+  }
+
+  .database-page .p3-heading {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .database-page .p3-heading .p3-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .database-page .p3-heading .p3-actions .ui-button {
+    width: 100%;
+  }
+
+  .database-page .p3-route-summary {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .database-page .p3-route-summary .p3-stat {
+    min-width: 0;
+    padding: 11px;
+  }
+
+  .database-page .p3-route-summary .p3-stat span {
+    font-size: 11.5px;
+  }
+
+  .database-page .p3-route-summary .p3-stat strong {
+    font-size: 20px;
+  }
+
+  .database-page .p3-grid {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .database-page .p3-filter {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .database-page .p3-filter .p3-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .database-page .p3-filter .p3-actions .ui-button {
+    width: 100%;
+  }
+
+  .database-page .p3-table-wrap {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .database-page .p3-table {
+    width: 760px;
+    min-width: 760px !important;
+  }
+
+  .database-page .database-insights-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .database-page .database-insight-card {
+    min-height: 104px;
+    padding: 11px;
+  }
+
+  .database-page .database-insight-value {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 420px) {
+  .database-page .database-insights-grid {
+    grid-template-columns: 1fr;
+  }
+}
