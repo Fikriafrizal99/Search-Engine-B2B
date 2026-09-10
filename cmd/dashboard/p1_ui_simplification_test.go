@@ -24,14 +24,19 @@ func TestP1VisitSessionIsExecutionFocused(t *testing.T) {
 	}
 }
 
-func TestP1MerchantDetailGroupsPrimaryAndOptionalFields(t *testing.T) {
-	for _, want := range []string{"Informasi Merchant", "QRIS & Soundbox", "Sales Progress", "Next Action", "Detail Tambahan", "Coverage Visit", "Merchant History", "Visit History"} {
+func TestP1SalesWorkspaceKeepsOnlyPrimarySalesFields(t *testing.T) {
+	for _, want := range []string{"Sales Workspace", "Progress Sales", "Status Sales", "Punya QRIS?", "Provider QRIS", "Punya Soundbox?", "Next Action", "Tanggal Follow-up", "Simpan Progress", "Riwayat & Koreksi Visit"} {
 		if !strings.Contains(merchantHTML, want) {
-			t.Fatalf("Merchant Detail missing %q", want)
+			t.Fatalf("Sales Workspace missing %q", want)
 		}
 	}
-	if !strings.Contains(merchantHTML, `<details class="ui-card p3-panel p3-history-details">`) {
-		t.Fatal("optional/history sections are not collapsible")
+	for _, unwanted := range []string{"<h2>Informasi Merchant</h2>", "Traffic Merchant", "Level Transaksi", "Status Registrasi", "Status Instalasi", "Status Aktivasi"} {
+		if strings.Contains(merchantHTML, unwanted) {
+			t.Fatalf("Sales Workspace still exposes secondary field %q", unwanted)
+		}
+	}
+	if !strings.Contains(merchantHTML, "sales-workspace-stepper") || !strings.Contains(merchantHTML, "Koreksi Visit Terakhir") {
+		t.Fatal("sales stage stepper or visit correction access missing")
 	}
 }
 
