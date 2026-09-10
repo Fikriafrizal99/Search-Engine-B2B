@@ -24,11 +24,18 @@ func registerUIAssets(mux *http.ServeMux) {
 			http.Error(w, "layout stylesheet unavailable", http.StatusInternalServerError)
 			return
 		}
+		polish, err := uiAssets.ReadFile("ui/final-polish.css")
+		if err != nil {
+			http.Error(w, "polish stylesheet unavailable", http.StatusInternalServerError)
+			return
+		}
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
 		_, _ = w.Write(css)
 		_, _ = w.Write([]byte("\n"))
 		_, _ = w.Write(fixes)
+		_, _ = w.Write([]byte("\n"))
+		_, _ = w.Write(polish)
 	})
 	mux.HandleFunc("GET /assets/daily-visit-report.js", func(w http.ResponseWriter, r *http.Request) {
 		js, err := uiAssets.ReadFile("ui/daily-visit-report.js")
