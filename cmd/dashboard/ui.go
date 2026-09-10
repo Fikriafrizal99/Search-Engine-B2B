@@ -19,8 +19,15 @@ func registerUIAssets(mux *http.ServeMux) {
 			http.Error(w, "stylesheet unavailable", http.StatusInternalServerError)
 			return
 		}
+		fixes, err := uiAssets.ReadFile("ui/layout-fixes.css")
+		if err != nil {
+			http.Error(w, "layout stylesheet unavailable", http.StatusInternalServerError)
+			return
+		}
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
 		_, _ = w.Write(css)
+		_, _ = w.Write([]byte("\n"))
+		_, _ = w.Write(fixes)
 	})
 }
