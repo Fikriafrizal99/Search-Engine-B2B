@@ -19,7 +19,7 @@ type dashboardStat struct {
 }
 type dashboardRouteView struct {
 	prospectstore.DashboardRoute
-	Title, Subtitle, Icon, Tone, URL, Action string
+	Title, Subtitle, Icon, Tone, URL, DetailURL, Action string
 }
 type salesDashboardData struct {
 	Summary                  prospectstore.SalesDashboardSummary
@@ -83,9 +83,9 @@ func (a *app) handleSalesDashboard(w http.ResponseWriter, r *http.Request) {
 		{"Follow Up", "dalam proses", "clipboard", "purple", "/merchants?status=follow_up", pipeline.FollowUp},
 		{"Active", "merchant aktif", "store", "rose", "/merchants?status=active", pipeline.Active},
 	}
+	// Coverage (unvisited/planned/visited/revisit) is shown separately in Area
+	// Planner and Merchant. The dashboard sales pipeline starts at presentation.
 	data.Stages = []dashboardStat{
-		{"TO VISIT", "belum dikunjungi", "pin", "slate", "to_visit", filtered.ToVisit},
-		{"VISITED", "sudah visit", "check", "blue", "visited", filtered.Visited},
 		{"PRESENTED", "sudah presentasi", "file", "blue", "presented", filtered.Presented},
 		{"INTERESTED", "merchant tertarik", "heart", "rose", "interested", filtered.Interested},
 		{"FOLLOW UP", "perlu tindak lanjut", "clock", "amber", "follow_up", filtered.FollowUp},
@@ -106,7 +106,7 @@ func (a *app) handleSalesDashboard(w http.ResponseWriter, r *http.Request) {
 			v.Subtitle = "Merchant yang perlu dikunjungi hari ini."
 			v.Icon = "sun"
 			v.Tone = "blue"
-			v.Action = "Lihat & Mulai Rute Hari Ini"
+			v.Action = "Mulai / Lanjutkan Visit"
 		} else {
 			v.Title = "Rute Besok"
 			v.Subtitle = "Rencana kunjungan untuk esok hari."
@@ -115,9 +115,15 @@ func (a *app) handleSalesDashboard(w http.ResponseWriter, r *http.Request) {
 			v.Action = "Lihat Rute Besok"
 		}
 		if route.ID > 0 {
-			v.URL = fmt.Sprintf("/visit-plan/%d", route.ID)
+			v.DetailURL = fmt.Sprintf("/visit-plan/%d", route.ID)
+			if i == 0 {
+				v.URL = fmt.Sprintf("/contact?plan_id=%d", route.ID)
+			} else {
+				v.URL = v.DetailURL
+			}
 		} else {
 			v.URL = "/visit-plans/new?plan_date=" + date
+			v.DetailURL = v.URL
 			if i == 0 {
 				v.Action = "Buat Rute Hari Ini"
 			} else {
