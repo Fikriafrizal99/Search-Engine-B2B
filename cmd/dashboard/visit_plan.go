@@ -13,9 +13,11 @@ import (
 )
 
 type visitPlanFormData struct {
-	Location string
-	PlanDate string
-	Target   int
+	Location     string
+	PlanDate     string
+	Target       int
+	Areas        []prospectstore.StoredArea
+	HasAvailable bool
 }
 
 type visitPlanPageData struct {
@@ -47,15 +49,39 @@ func registerVisitPlanRoutes(mux *http.ServeMux, a *app) {
 
 func (a *app) handleVisitPlanForm(w http.ResponseWriter, r *http.Request) {
 	location := strings.TrimSpace(r.URL.Query().Get("location"))
-	tomorrow := time.Now().In(jakartaLocation).AddDate(0, 0, 1).Format("2006-01-02")
+	areas, err := a.store.StoredAreas(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	available := make([]prospectstore.StoredArea, 0, len(areas))
+	for _, area := range areas {
+		if area.Remaining > 0 {
+			available = append(available, area)
+		}
+	}
+	// Dashboard links may not carry an area filter. When there is only one
+	// usable coverage area, select it automatically; with multiple areas the
+	// form exposes an explicit selector instead of leaving the route unusable.
+	if location == "" && len(available) == 1 {
+		location = available[0].LocationScope
+	}
+
+	planDate := time.Now().In(jakartaLocation).AddDate(0, 0, 1).Format("2006-01-02")
 	if date := r.URL.Query().Get("plan_date"); date != "" {
 		if _, err := time.ParseInLocation("2006-01-02", date, jakartaLocation); err != nil {
 			http.Error(w, "tanggal rencana tidak valid", http.StatusBadRequest)
 			return
 		}
-		tomorrow = date
+		planDate = date
 	}
-	renderPhase2(w, visitPlanFormTmpl, visitPlanFormData{Location: location, PlanDate: tomorrow, Target: 25})
+	renderPhase2(w, visitPlanFormTmpl, visitPlanFormData{
+		Location:     location,
+		PlanDate:     planDate,
+		Target:       25,
+		Areas:        available,
+		HasAvailable: len(available) > 0,
+	})
 }
 
 func (a *app) handleCreateVisitPlan(w http.ResponseWriter, r *http.Request) {
