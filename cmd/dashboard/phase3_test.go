@@ -79,7 +79,7 @@ func TestPhase3OperationalPagesRender(t *testing.T) {
 		{"/contact?mode=all", "Visit Session"},
 		{"/database", "Database Merchant"},
 		{"/visit-plans/new?location=" + url.QueryEscape(scope), "Buat Rute Kunjungan"},
-		{fmt.Sprintf("/merchant/%d", merchant.ID), "Merchant Detail"},
+		{fmt.Sprintf("/merchant/%d", merchant.ID), "Sales Workspace"},
 		{"/assets/phase3.css", ".phase3"},
 	}
 	for _, tc := range checks {
