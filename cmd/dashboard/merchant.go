@@ -15,6 +15,7 @@ import (
 type merchantPipelinePageData struct {
 	Items                                []prospectstore.MerchantPipelineItem
 	Stats                                prospectstore.BukupayPipelineStats
+	Coverage                             prospectstore.CoverageProgress
 	Status, Location, Search             string
 	Due                                  bool
 	Areas                                []string
@@ -38,6 +39,14 @@ var merchantFuncs = template.FuncMap{
 	"wa":            waNumber,
 	"statusTone":    dashboardStatusTone,
 	"resultLabel":   contactResultLabel,
+	"isPreSalesStatus": func(value string) bool {
+		switch value {
+		case "to_visit", "visited", "owner_not_found":
+			return true
+		default:
+			return false
+		}
+	},
 	"qualificationLabel": func(value string) string {
 		return labels(map[string]string{"low": "Rendah", "medium": "Sedang", "high": "Tinggi", "cold": "Cold", "warm": "Warm", "hot": "Hot"}, value, "Belum dinilai")
 	},
@@ -94,12 +103,17 @@ func (a *app) handleMerchantPipeline(w http.ResponseWriter, r *http.Request) {
 		renderPhase2Error(w, http.StatusInternalServerError, "Merchant Pipeline", err)
 		return
 	}
+	coverage, err := a.store.CoverageOverview(r.Context(), location)
+	if err != nil {
+		renderPhase2Error(w, http.StatusInternalServerError, "Merchant Pipeline", err)
+		return
+	}
 	areas, err := a.store.MerchantAreas(r.Context())
 	if err != nil {
 		renderPhase2Error(w, http.StatusInternalServerError, "Merchant Pipeline", err)
 		return
 	}
-	data := merchantPipelinePageData{Items: items, Stats: stats, Status: status, Location: location, Search: f.Search, Due: f.Due, Areas: areas, Count: count, Page: page, Pages: pages}
+	data := merchantPipelinePageData{Items: items, Stats: stats, Coverage: coverage, Status: status, Location: location, Search: f.Search, Due: f.Due, Areas: areas, Count: count, Page: page, Pages: pages}
 	data.Stages, data.Exceptions = merchantStages(stats, f)
 	data.PreviousURL = merchantFilterURL(f, page-1)
 	data.NextURL = merchantFilterURL(f, page+1)
@@ -177,8 +191,17 @@ func (a *app) handleMerchantUpdate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	status := strings.TrimSpace(r.FormValue("status"))
+	if status == "" {
+		current, getErr := a.store.GetMerchant(r.Context(), id)
+		if getErr != nil {
+			http.Error(w, getErr.Error(), http.StatusNotFound)
+			return
+		}
+		status = current.Status
+	}
 	_, err = a.store.UpdateMerchant(r.Context(), id, prospectstore.MerchantInput{
-		Status:             r.FormValue("status"),
+		Status:             status,
 		MerchantType:       r.FormValue("merchant_type"),
 		PICName:            r.FormValue("pic_name"),
 		PICRole:            r.FormValue("pic_role"),
@@ -205,10 +228,10 @@ func (a *app) handleMerchantUpdate(w http.ResponseWriter, r *http.Request) {
 
 func merchantStatusLabel(v string) string {
 	return labels(map[string]string{
-		"to_visit": "To Visit", "visited": "Visited", "presented": "Presented", "interested": "Interested",
+		"to_visit": "Belum masuk Sales Pipeline", "visited": "Belum masuk Sales Pipeline", "presented": "Presented", "interested": "Interested",
 		"follow_up": "Follow Up", "registration": "Registration", "registered": "Registered",
 		"installation": "Installation", "installed": "Installed", "active": "Active",
-		"not_interested": "Tidak Tertarik", "owner_not_found": "Owner/PIC Tidak Ada",
+		"not_interested": "Tidak Tertarik", "owner_not_found": "Revisit / Owner Tidak Ada",
 		"already_soundbox": "Sudah Punya Soundbox", "closed": "Tutup", "invalid_lead": "Invalid Lead",
 	}, v, v)
 }
