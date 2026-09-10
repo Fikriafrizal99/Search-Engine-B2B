@@ -53,7 +53,7 @@ func TestVisitSessionDailyReportEndpointAndUI(t *testing.T) {
 	if response.TotalVisited != 1 || response.RouteTarget != 2 || response.RouteDone != 1 {
 		t.Fatalf("unexpected report summary: %+v", response)
 	}
-	for _, want := range []string{"BUKUPAY — DAILY VISIT REPORT", "Tertarik", "Interested", "Pak Dedi", "Lanjut registrasi"} {
+	for _, want := range []string{"BUKUPAY — REPORT VISIT HARIAN", "Tertarik", "Visit → Tertarik", "Pak Dedi", "Lanjut registrasi"} {
 		if !strings.Contains(response.Text, want) {
 			t.Fatalf("daily report text missing %q: %s", want, response.Text)
 		}
