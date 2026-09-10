@@ -46,8 +46,6 @@ type pipelineStage struct {
 
 func merchantStages(s prospectstore.BukupayPipelineStats, f prospectstore.MerchantListFilter) ([]pipelineStage, []pipelineStage) {
 	stages := []pipelineStage{
-		{Status: "to_visit", Label: "TO VISIT", Hint: "belum dikunjungi", Icon: "file", Tone: "slate", Count: s.ToVisit},
-		{Status: "visited", Label: "VISITED", Hint: "sudah visit", Icon: "check", Tone: "blue", Count: s.Visited},
 		{Status: "presented", Label: "PRESENTED", Hint: "sudah presentasi", Icon: "chart", Tone: "blue", Count: s.Presented},
 		{Status: "interested", Label: "INTERESTED", Hint: "merchant tertarik", Icon: "heart", Tone: "rose", Count: s.Interested},
 		{Status: "follow_up", Label: "FOLLOW UP", Hint: "perlu tindak lanjut", Icon: "clock", Tone: "amber", Count: s.FollowUp},
@@ -58,7 +56,6 @@ func merchantStages(s prospectstore.BukupayPipelineStats, f prospectstore.Mercha
 		{Status: "active", Label: "ACTIVE", Hint: "merchant aktif", Icon: "store", Tone: "green", Count: s.Active},
 	}
 	exceptions := []pipelineStage{
-		{Status: "owner_not_found", Label: "Owner/PIC tidak ada", Hint: "perlu kunjungan ulang", Icon: "users", Tone: "rose", Count: s.OwnerNotFound},
 		{Status: "not_interested", Label: "Tidak tertarik", Hint: "menolak penawaran", Icon: "heart", Tone: "rose", Count: s.NotInterested},
 		{Status: "already_soundbox", Label: "Sudah Soundbox", Hint: "sudah menggunakan", Icon: "plug", Tone: "purple", Count: s.AlreadySoundbox},
 		{Status: "closed", Label: "Tutup", Hint: "sudah tidak beroperasi", Icon: "store", Tone: "slate", Count: s.Closed},
