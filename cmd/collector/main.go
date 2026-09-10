@@ -52,6 +52,16 @@ func (w *scrapeExitWatcher) Write(p []byte) (int, error) {
 
 func (w *scrapeExitWatcher) Exited() <-chan struct{} { return w.exited }
 
+func signalScraperGroup(cmd *exec.Cmd, sig syscall.Signal) error {
+	if cmd == nil || cmd.Process == nil {
+		return nil
+	}
+	if err := syscall.Kill(-cmd.Process.Pid, sig); err != nil && !errors.Is(err, syscall.ESRCH) {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	presetName := flag.String("preset", "bukupay-merchants", "preset name")
 	areaName := flag.String("area", "java-sumatra", "area name")
@@ -136,6 +146,9 @@ func main() {
 	args := []string{"-input", queryFile, "-results", rawFile}
 	args = append(args, flag.Args()...)
 	cmd := exec.CommandContext(runCtx, *engine, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Cancel = func() error { return signalScraperGroup(cmd, syscall.SIGINT) }
+	cmd.WaitDelay = scraperKillGrace
 	watcher := newScrapeExitWatcher(os.Stdout)
 	cmd.Stdout, cmd.Stderr, cmd.Stdin = watcher, watcher, os.Stdin
 	if err := cmd.Start(); err != nil {
@@ -143,7 +156,25 @@ func main() {
 	}
 
 	waitCh := make(chan error, 1)
-	go func() { waitCh <- cmd.Wait() }()
+	processDone := make(chan struct{})
+	go func() {
+		waitErr := cmd.Wait()
+		close(processDone)
+		waitCh <- waitErr
+	}()
+	go func() {
+		select {
+		case <-runCtx.Done():
+			_ = signalScraperGroup(cmd, syscall.SIGINT)
+			select {
+			case <-processDone:
+			case <-time.After(scraperKillGrace):
+				_ = signalScraperGroup(cmd, syscall.SIGKILL)
+			}
+		case <-processDone:
+		}
+	}()
+
 	var waitErr error
 	forcedShutdown := false
 	select {
@@ -154,13 +185,13 @@ func main() {
 		case <-time.After(scraperExitGrace):
 			forcedShutdown = true
 			fmt.Println("PHASE scraper-shutdown-recovery")
-			fmt.Printf("WARN scraper still running %s after scrapemate exited; requesting shutdown\n", scraperExitGrace)
-			_ = cmd.Process.Signal(os.Interrupt)
+			fmt.Printf("WARN scraper still running %s after scrapemate exited; requesting process-group shutdown\n", scraperExitGrace)
+			_ = signalScraperGroup(cmd, syscall.SIGINT)
 			select {
 			case waitErr = <-waitCh:
 			case <-time.After(scraperKillGrace):
-				fmt.Printf("WARN scraper did not stop after another %s; forcing process exit\n", scraperKillGrace)
-				_ = cmd.Process.Kill()
+				fmt.Printf("WARN scraper process group did not stop after another %s; forcing exit\n", scraperKillGrace)
+				_ = signalScraperGroup(cmd, syscall.SIGKILL)
 				waitErr = <-waitCh
 			}
 		}
