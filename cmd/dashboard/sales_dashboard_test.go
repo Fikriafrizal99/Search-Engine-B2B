@@ -34,7 +34,7 @@ func TestSalesDashboardRender(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("render: %d %s", w.Code, w.Body.String())
 	}
-	for _, want := range []string{"Belum ada prioritas hari ini", "Belum ada aktivitas tercatat", "aria-current=\"page\"", "/assets/bukupay-ui-v2.css", "PRESENTED", "FOLLOW UP", "ACTIVE"} {
+	for _, want := range []string{"Tidak ada follow-up jatuh tempo", "Belum ada aktivitas", "aria-current=\"page\"", "/assets/bukupay-ui-v2.css", "Sudah Presentasi", "Follow-up", "Aktif"} {
 		if !strings.Contains(w.Body.String(), want) {
 			t.Errorf("missing %q", want)
 		}
@@ -46,8 +46,8 @@ func TestSalesDashboardRender(t *testing.T) {
 		t.Fatal("invalid template URL")
 	}
 	css := get("/assets/bukupay-ui-v2.css")
-	if css.Code != 200 || !strings.Contains(css.Header().Get("Content-Type"), "text/css") || !strings.Contains(css.Body.String(), "--ui-navy") {
-		t.Fatal("shared stylesheet unavailable")
+	if css.Code != 200 || !strings.Contains(css.Header().Get("Content-Type"), "text/css") || !strings.Contains(css.Body.String(), "--ui-navy") || !strings.Contains(css.Body.String(), "Final Bukupay UI polish") {
+		t.Fatal("shared stylesheet unavailable or final polish missing")
 	}
 	for _, date := range []string{"2026-09-10", "2026-09-11"} {
 		form := get("/visit-plans/new?plan_date=" + date)
@@ -81,7 +81,7 @@ func TestSalesDashboardRender(t *testing.T) {
 	if w.Code != 200 {
 		t.Fatalf("populated render: %d %s", w.Code, w.Body.String())
 	}
-	for _, want := range []string{"Test &lt;Merchant&gt;", "Tindak lanjut jatuh tempo", "https://wa.me/628123456789", "tel:+628123456789", "Mulai Visit", "Test Area", "Pipeline"} {
+	for _, want := range []string{"Test &lt;Merchant&gt;", "Tindak lanjut jatuh tempo", "https://wa.me/628123456789", "tel:+628123456789", "Buka Visit", "Test Area", "Pipeline"} {
 		if !strings.Contains(w.Body.String(), want) {
 			t.Errorf("populated render missing %q", want)
 		}
