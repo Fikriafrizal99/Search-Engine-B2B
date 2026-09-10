@@ -2,7 +2,7 @@
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sales Workspace · Bukupay</title><link rel="stylesheet" href="/assets/bukupay-ui-v2.css"><link rel="stylesheet" href="/assets/phase3.css"></head>
 <body class="ui-body">{{template "ui-symbols"}}{{template "ui-nav" "merchants"}}
 <main class="ui-container phase3 sales-workspace" id="main">
- <div class="p3-heading sales-workspace-heading"><div><p class="ui-eyebrow">SALES WORKSPACE</p><h1>Sales Workspace</h1><p class="ui-subtitle">Proses merchant yang sudah masuk pipeline sales. Hasil kunjungan tetap dikelola dari Visit Session.</p></div><div class="p3-actions"><a class="ui-button ui-outline" href="/merchants">← Sales Pipeline</a></div></div>
+ <div class="p3-heading sales-workspace-heading"><div><p class="ui-eyebrow">SALES WORKSPACE</p><h1>Sales Workspace</h1><p class="ui-subtitle">Proses merchant yang sudah masuk pipeline sales. Update kunjungan dan koreksi visit dikelola dari Visit Session.</p></div><div class="p3-actions"><a class="ui-button ui-outline" href="/merchants">← Sales Pipeline</a><a class="ui-button ui-outline" href="/contact?id={{.Prospect.ID}}">{{template "ui-icon" "calendar"}} Visit Session</a></div></div>
 
  <section class="ui-card sales-workspace-merchant">
   <div class="sales-workspace-summary"><span class="ui-iconbox blue">{{template "ui-icon" "store"}}</span><div class="sales-workspace-summary-main"><div class="sales-workspace-title-row"><div><h2>{{.Prospect.Title}}</h2><p class="ui-muted">{{if .Prospect.Category}}{{.Prospect.Category}}{{else}}Kategori belum tersedia{{end}}</p></div><span class="ui-badge {{statusTone .Merchant.Status}}">{{merchantLabel .Merchant.Status}}</span></div><p class="sales-workspace-address">{{template "ui-icon" "pin"}}{{if .Prospect.Address}}{{.Prospect.Address}}{{else}}{{.Prospect.LocationScope}}{{end}}</p></div></div>
@@ -44,12 +44,6 @@
 
   <div class="sales-workspace-save"><button class="ui-button ui-primary">Simpan Progress</button></div>
  </form>
-
- <details class="ui-card p3-panel p3-history-details sales-workspace-details"><summary><strong>Riwayat & Koreksi Visit</strong><span class="ui-muted">Buka hanya jika perlu cek hasil kunjungan</span></summary>
-  <div class="sales-workspace-visit-summary"><div><span class="ui-muted">Coverage</span><strong>{{visitLabel .VisitState.VisitStatus}}</strong></div><div><span class="ui-muted">Total Visit</span><strong>{{.VisitState.VisitCount}}</strong></div><div><span class="ui-muted">Hasil Terakhir</span><strong>{{if .VisitState.LastResult}}{{resultLabel .VisitState.LastResult}}{{else}}-{{end}}</strong></div></div>
-  {{if .LatestVisitID}}<a class="ui-button ui-outline" style="margin-top:12px" href="/merchant/{{.Merchant.ID}}/visit/{{.LatestVisitID}}/edit">Koreksi Visit Terakhir</a>{{end}}
-  {{if .Visits}}<div class="p3-table-wrap" style="margin-top:12px"><table class="p3-table"><thead><tr><th>Waktu</th><th>Hasil</th><th>PIC</th><th>Catatan</th></tr></thead><tbody>{{range .Visits}}<tr><td>{{contactTime .VisitedAt}}</td><td>{{resultLabel .VisitResult}}</td><td>{{if .PICName}}{{.PICName}}{{else}}-{{end}}</td><td>{{if .Note}}{{.Note}}{{else}}-{{end}}</td></tr>{{end}}</tbody></table></div>{{end}}
- </details>
 
  <details class="ui-card p3-panel p3-history-details sales-workspace-details"><summary><strong>Sales History</strong><span class="ui-muted">Audit perubahan status</span></summary>{{if .History}}<div class="p3-table-wrap" style="margin-top:12px"><table class="p3-table"><thead><tr><th>Waktu</th><th>Status</th><th>Catatan</th></tr></thead><tbody>{{range .History}}<tr><td>{{contactTime .CreatedAt}}</td><td>{{if .FromStatus}}{{merchantLabel .FromStatus}} → {{end}}{{merchantLabel .ToStatus}}</td><td>{{if .Note}}{{.Note}}{{else}}-{{end}}</td></tr>{{end}}</tbody></table></div>{{else}}<p class="ui-muted" style="margin-top:10px">Belum ada perubahan sales.</p>{{end}}</details>
 </main></body></html>
