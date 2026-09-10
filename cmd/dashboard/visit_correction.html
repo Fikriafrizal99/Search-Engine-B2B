@@ -2,12 +2,12 @@
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Koreksi Visit · Bukupay</title><link rel="stylesheet" href="/assets/bukupay-ui-v2.css"><link rel="stylesheet" href="/assets/phase3.css"></head>
 <body class="ui-body">{{template "ui-symbols"}}{{template "ui-nav" "contact"}}
 <main class="ui-container phase3" id="main">
- <div class="p3-heading"><div><p class="ui-eyebrow">VISIT CORRECTION</p><h1>Koreksi Hasil Visit</h1><p class="ui-subtitle">Perbaiki visit terbaru tanpa menambah jumlah kunjungan. Nilai sebelumnya tetap disimpan sebagai audit koreksi.</p></div><a class="ui-button ui-outline" href="/merchant/{{.Merchant.ID}}">← Kembali ke Merchant</a></div>
+ <div class="p3-heading"><div><p class="ui-eyebrow">VISIT CORRECTION</p><h1>Koreksi Hasil Visit</h1><p class="ui-subtitle">Perbaiki visit terbaru tanpa menambah jumlah kunjungan. Nilai sebelumnya tetap disimpan sebagai audit koreksi.</p></div><a class="ui-button ui-outline" href="{{.ReturnURL}}">← Kembali</a></div>
  <div class="p3-grid">
   <section class="ui-card p3-panel">
    <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="blue">{{template "ui-icon" "clipboard"}}</span><div><h2>{{.Prospect.Title}}</h2><p class="ui-muted">Visit {{contactTime .Visit.VisitedAt}} · hasil sekarang: {{resultLabel .Visit.VisitResult}}</p></div></div></div>
    <div class="p3-note p3-warn"><strong>Hanya visit terbaru yang dapat dikoreksi.</strong><div>Koreksi akan memperbarui Coverage Visit dan Sales Status yang terkait, tetapi tidak menambah Visit Count.</div></div>
-   <form method="post" action="/merchant/{{.Merchant.ID}}/visit/{{.Visit.ID}}/edit" style="margin-top:14px">
+   <form method="post" action="{{.FormAction}}" style="margin-top:14px">
     <div class="p3-form-grid">
      <label class="p3-field">Hasil yang benar<select id="result" name="result" required>
       <option value="visited" {{if eq .Visit.VisitResult "visited"}}selected{{end}}>Kunjungan selesai — belum presentasi</option>
