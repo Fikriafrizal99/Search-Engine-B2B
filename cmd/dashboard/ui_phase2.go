@@ -31,10 +31,10 @@ var phase2Funcs = template.FuncMap{
 		return strings.Join(parts, ",")
 	},
 	"coverageLabel": func(status string) string {
-		return labels(map[string]string{"scraped": "Tersimpan", "in_progress": "In Progress", "completed": "Completed"}, status, status)
+		return labels(map[string]string{"scraped": "Tersimpan", "in_progress": "Berjalan", "completed": "Selesai"}, status, status)
 	},
 	"qualificationLabel": func(value string) string {
-		return labels(map[string]string{"low": "Rendah", "medium": "Sedang", "high": "Tinggi", "cold": "Cold", "warm": "Warm", "hot": "Hot"}, value, "Belum dinilai")
+		return labels(map[string]string{"low": "Rendah", "medium": "Sedang", "high": "Tinggi", "cold": "Dingin", "warm": "Hangat", "hot": "Panas"}, value, "Belum dinilai")
 	},
 }
 
@@ -46,20 +46,20 @@ type pipelineStage struct {
 
 func merchantStages(s prospectstore.BukupayPipelineStats, f prospectstore.MerchantListFilter) ([]pipelineStage, []pipelineStage) {
 	stages := []pipelineStage{
-		{Status: "presented", Label: "PRESENTED", Hint: "sudah presentasi", Icon: "chart", Tone: "blue", Count: s.Presented},
-		{Status: "interested", Label: "INTERESTED", Hint: "merchant tertarik", Icon: "heart", Tone: "rose", Count: s.Interested},
-		{Status: "follow_up", Label: "FOLLOW UP", Hint: "perlu tindak lanjut", Icon: "clock", Tone: "amber", Count: s.FollowUp},
-		{Status: "registration", Label: "REGISTRATION", Hint: "proses daftar", Icon: "file", Tone: "slate", Count: s.Registration},
-		{Status: "registered", Label: "REGISTERED", Hint: "sudah terdaftar", Icon: "check", Tone: "blue", Count: s.Registered},
-		{Status: "installation", Label: "INSTALLATION", Hint: "proses pasang", Icon: "tool", Tone: "purple", Count: s.Installation},
-		{Status: "installed", Label: "INSTALLED", Hint: "Soundbox terpasang", Icon: "plug", Tone: "purple", Count: s.Installed},
-		{Status: "active", Label: "ACTIVE", Hint: "merchant aktif", Icon: "store", Tone: "green", Count: s.Active},
+		{Status: "presented", Label: "Sudah Presentasi", Hint: "sudah presentasi", Icon: "chart", Tone: "blue", Count: s.Presented},
+		{Status: "interested", Label: "Tertarik", Hint: "merchant tertarik", Icon: "heart", Tone: "rose", Count: s.Interested},
+		{Status: "follow_up", Label: "Follow-up", Hint: "perlu tindak lanjut", Icon: "clock", Tone: "amber", Count: s.FollowUp},
+		{Status: "registration", Label: "Registrasi", Hint: "proses daftar", Icon: "file", Tone: "slate", Count: s.Registration},
+		{Status: "registered", Label: "Terdaftar", Hint: "sudah terdaftar", Icon: "check", Tone: "blue", Count: s.Registered},
+		{Status: "installation", Label: "Pemasangan", Hint: "proses pasang", Icon: "tool", Tone: "purple", Count: s.Installation},
+		{Status: "installed", Label: "Terpasang", Hint: "Soundbox terpasang", Icon: "plug", Tone: "purple", Count: s.Installed},
+		{Status: "active", Label: "Aktif", Hint: "merchant aktif", Icon: "store", Tone: "green", Count: s.Active},
 	}
 	exceptions := []pipelineStage{
 		{Status: "not_interested", Label: "Tidak tertarik", Hint: "menolak penawaran", Icon: "heart", Tone: "rose", Count: s.NotInterested},
-		{Status: "already_soundbox", Label: "Sudah Soundbox", Hint: "sudah menggunakan", Icon: "plug", Tone: "purple", Count: s.AlreadySoundbox},
+		{Status: "already_soundbox", Label: "Sudah punya Soundbox", Hint: "sudah menggunakan", Icon: "plug", Tone: "purple", Count: s.AlreadySoundbox},
 		{Status: "closed", Label: "Tutup", Hint: "sudah tidak beroperasi", Icon: "store", Tone: "slate", Count: s.Closed},
-		{Status: "invalid_lead", Label: "Invalid Lead", Hint: "data tidak valid", Icon: "file", Tone: "rose", Count: s.InvalidLead},
+		{Status: "invalid_lead", Label: "Data tidak valid", Hint: "perlu dikeluarkan", Icon: "file", Tone: "rose", Count: s.InvalidLead},
 	}
 	for _, group := range [][]pipelineStage{stages, exceptions} {
 		for i := range group {
@@ -110,6 +110,15 @@ func registerPhase2Assets(mux *http.ServeMux) {
 					_, _ = w.Write(fixes)
 				}
 			}
+			// Phase-specific styles load after the shared stylesheet in HTML. Append
+			// the final polish layer here too so the final typography and spacing
+			// remain authoritative on Phase 2 and Phase 3 pages.
+			if asset.name == "phase2.css" || asset.name == "phase3.css" {
+				if polish, err := uiAssets.ReadFile("ui/final-polish.css"); err == nil {
+					_, _ = w.Write([]byte("\n"))
+					_, _ = w.Write(polish)
+				}
+			}
 			if asset.name == "area-planner.js" {
 				if borderFilter, err := uiAssets.ReadFile("ui/area-border-filter.js"); err == nil {
 					_, _ = w.Write([]byte("\n"))
@@ -132,5 +141,5 @@ func renderPhase2(w http.ResponseWriter, t *template.Template, data any) {
 func renderPhase2Error(w http.ResponseWriter, status int, title string, err error) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
-	fmt.Fprintf(w, `<!doctype html><html lang="id"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>%s · Bukupay</title><link rel="stylesheet" href="/assets/bukupay-ui-v2.css"><body class="ui-body"><main class="ui-container"><section class="ui-card ui-empty"><h1>%s</h1><p role="alert">%s</p><a class="ui-button" href="/areas">Area Planner</a><a class="ui-button" href="/merchants">Semua Merchant</a><a class="ui-button" href="/sales">Dashboard</a></section></main></body></html>`, template.HTMLEscapeString(title), template.HTMLEscapeString(title), template.HTMLEscapeString(err.Error()))
+	fmt.Fprintf(w, `<!doctype html><html lang="id"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>%s · Bukupay</title><link rel="stylesheet" href="/assets/bukupay-ui-v2.css"><body class="ui-body"><main class="ui-container"><section class="ui-card ui-empty"><h1>%s</h1><p role="alert">%s</p><a class="ui-button" href="/areas">Area Planner</a><a class="ui-button" href="/merchants">Sales</a><a class="ui-button" href="/sales">Dashboard</a></section></main></body></html>`, template.HTMLEscapeString(title), template.HTMLEscapeString(title), template.HTMLEscapeString(err.Error()))
 }
