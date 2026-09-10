@@ -1,0 +1,318 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+REPO="${BUKUPAY_REPO:-$HOME/Search-Engine-B2B}"
+APP_CONTAINER="${BUKUPAY_APP_CONTAINER:-bukupay-sales}"
+TUNNEL_CONTAINER="${BUKUPAY_TUNNEL_CONTAINER:-bukupay-quick-tunnel}"
+APP_URL="${BUKUPAY_APP_URL:-http://localhost:8082}"
+DB_REL="data/bukupay.db"
+LEGACY_DB_REL="data/prospects.db"
+
+say() { printf '%s\n' "$*"; }
+err() { printf 'ERROR: %s\n' "$*" >&2; }
+
+need() {
+  command -v "$1" >/dev/null 2>&1 || {
+    err "Perintah '$1' tidak ditemukan."
+    exit 1
+  }
+}
+
+repo() {
+  if [[ ! -d "$REPO/.git" ]]; then
+    err "Repo Bukupay tidak ditemukan di: $REPO"
+    err "Set lokasi dengan: export BUKUPAY_REPO=/path/ke/Search-Engine-B2B"
+    exit 1
+  fi
+  cd "$REPO"
+}
+
+container_exists() {
+  docker inspect "$1" >/dev/null 2>&1
+}
+
+container_running() {
+  [[ "$(docker inspect -f '{{.State.Running}}' "$1" 2>/dev/null || true)" == "true" ]]
+}
+
+public_url() {
+  local url=""
+  if container_exists "$TUNNEL_CONTAINER"; then
+    url="$(docker logs "$TUNNEL_CONTAINER" 2>&1 \
+      | grep -oE 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' \
+      | tail -1 || true)"
+  fi
+  if [[ -n "$url" ]]; then
+    printf '%s\n' "$url"
+    return 0
+  fi
+  return 1
+}
+
+cmd_status() {
+  need docker
+  repo
+  say "=== BUKUPAY STATUS ==="
+  say "Repo   : $REPO"
+  say "Branch : $(git branch --show-current)"
+  say "Commit : $(git rev-parse --short HEAD)"
+  say
+  docker ps -a --filter "name=^/${APP_CONTAINER}$" --filter "name=^/${TUNNEL_CONTAINER}$" \
+    --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+  say
+  if curl -fsSI "$APP_URL" >/dev/null 2>&1; then
+    say "App lokal : OK ($APP_URL)"
+  else
+    say "App lokal : TIDAK TERJANGKAU ($APP_URL)"
+  fi
+  if url="$(public_url)"; then
+    say "URL publik: $url"
+  else
+    say "URL publik: belum tersedia"
+  fi
+  say
+  if [[ -f "$DB_REL" ]]; then
+    say "DB Bukupay : $(ls -lh "$DB_REL" | awk '{print $5, $6, $7, $8, $9}')"
+  else
+    say "DB Bukupay : belum ada"
+  fi
+  if [[ -f "$LEGACY_DB_REL" ]]; then
+    say "Legacy DB  : aman ($LEGACY_DB_REL)"
+  fi
+}
+
+cmd_url() {
+  need docker
+  if url="$(public_url)"; then
+    say "$url"
+  else
+    err "URL Quick Tunnel belum tersedia."
+    err "Cek: bukupay tunnel-logs"
+    exit 1
+  fi
+}
+
+cmd_start() {
+  need docker
+  repo
+  say "Menyalakan Bukupay..."
+  if container_exists "$APP_CONTAINER"; then
+    docker start "$APP_CONTAINER" >/dev/null
+  else
+    docker compose up -d "$APP_CONTAINER"
+  fi
+  if container_exists "$TUNNEL_CONTAINER"; then
+    docker start "$TUNNEL_CONTAINER" >/dev/null || true
+  fi
+  sleep 2
+  cmd_status
+}
+
+cmd_stop() {
+  need docker
+  say "Menghentikan Bukupay dan Quick Tunnel..."
+  container_exists "$TUNNEL_CONTAINER" && docker stop "$TUNNEL_CONTAINER" >/dev/null || true
+  container_exists "$APP_CONTAINER" && docker stop "$APP_CONTAINER" >/dev/null || true
+  say "Selesai."
+}
+
+cmd_restart() {
+  need docker
+  repo
+  say "Restart Bukupay..."
+  if container_exists "$APP_CONTAINER"; then
+    docker restart "$APP_CONTAINER" >/dev/null
+  else
+    docker compose up -d "$APP_CONTAINER"
+  fi
+  if container_exists "$TUNNEL_CONTAINER"; then
+    docker restart "$TUNNEL_CONTAINER" >/dev/null
+  fi
+  sleep 5
+  cmd_status
+}
+
+cmd_logs() {
+  need docker
+  local n="${1:-80}"
+  docker logs --tail "$n" "$APP_CONTAINER"
+}
+
+cmd_follow() {
+  need docker
+  docker logs -f "$APP_CONTAINER"
+}
+
+cmd_tunnel_logs() {
+  need docker
+  local n="${1:-80}"
+  docker logs --tail "$n" "$TUNNEL_CONTAINER"
+}
+
+cmd_test() {
+  need go
+  repo
+  go test ./...
+}
+
+cmd_update() {
+  need git
+  need docker
+  need go
+  repo
+
+  if [[ -n "$(git status --porcelain)" ]]; then
+    err "Ada perubahan lokal. Update dibatalkan agar pekerjaan tidak tertimpa."
+    git status --short
+    exit 1
+  fi
+
+  local branch
+  branch="$(git branch --show-current)"
+  say "Update branch: $branch"
+  git pull --ff-only
+
+  say
+  say "Menjalankan test..."
+  go test ./...
+
+  say
+  say "Build dan deploy Bukupay..."
+  docker compose up -d --build "$APP_CONTAINER"
+  sleep 3
+
+  if curl -fsSI "$APP_URL" >/dev/null 2>&1; then
+    say "Deploy selesai. Bukupay lokal sehat."
+  else
+    err "Container sudah dibuild tetapi aplikasi lokal belum merespons."
+    docker logs --tail 80 "$APP_CONTAINER" || true
+    exit 1
+  fi
+
+  if url="$(public_url)"; then
+    say "URL publik: $url"
+  fi
+}
+
+cmd_backup() {
+  repo
+  if [[ ! -f "$DB_REL" ]]; then
+    err "Database $DB_REL tidak ditemukan."
+    exit 1
+  fi
+  mkdir -p data/backup
+  local out="data/backup/bukupay-$(date +%Y%m%d-%H%M%S).db"
+  cp -p "$DB_REL" "$out"
+  say "Backup dibuat: $REPO/$out"
+}
+
+cmd_reset_db() {
+  need docker
+  repo
+  say "PERINGATAN: ini menghapus seluruh data operasional Bukupay."
+  say "File $LEGACY_DB_REL TIDAK akan disentuh."
+  printf "Ketik RESET untuk lanjut: "
+  read -r confirm
+  if [[ "$confirm" != "RESET" ]]; then
+    say "Dibatalkan."
+    exit 0
+  fi
+
+  if [[ -f "$DB_REL" ]]; then
+    mkdir -p data/backup
+    local backup="data/backup/bukupay-before-reset-$(date +%Y%m%d-%H%M%S).db"
+    cp -p "$DB_REL" "$backup"
+    say "Backup otomatis: $backup"
+  fi
+
+  if container_exists "$APP_CONTAINER"; then
+    docker stop "$APP_CONTAINER" >/dev/null
+  fi
+  rm -f data/bukupay.db data/bukupay.db-wal data/bukupay.db-shm
+
+  if container_exists "$APP_CONTAINER"; then
+    docker start "$APP_CONTAINER" >/dev/null
+  else
+    docker compose up -d "$APP_CONTAINER"
+  fi
+  sleep 3
+  say "Database Bukupay direset."
+  [[ -f "$LEGACY_DB_REL" ]] && say "Legacy DB tetap ada: $LEGACY_DB_REL"
+  curl -sSI "$APP_URL" | head -5 || true
+}
+
+cmd_doctor() {
+  need docker
+  repo
+  say "=== CONTAINER ==="
+  docker ps -a --filter "name=bukupay" --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+  say
+  say "=== LOCAL APP ==="
+  curl -sSI "$APP_URL" | head -8 || true
+  say
+  say "=== APP LOG ==="
+  docker logs --tail 30 "$APP_CONTAINER" 2>&1 || true
+  say
+  say "=== TUNNEL URL ==="
+  public_url || say "Belum tersedia"
+  say
+  say "=== TUNNEL LOG ==="
+  docker logs --tail 30 "$TUNNEL_CONTAINER" 2>&1 || true
+}
+
+cmd_help() {
+  cat <<'EOF'
+Bukupay CLI
+
+Pemakaian:
+  bukupay status            Cek kondisi aplikasi, tunnel, branch, dan database
+  bukupay url               Tampilkan URL Quick Tunnel terbaru
+  bukupay start             Nyalakan aplikasi/tunnel yang sudah tersedia
+  bukupay stop              Hentikan aplikasi dan Quick Tunnel
+  bukupay restart           Restart aplikasi dan Quick Tunnel
+  bukupay update            git pull -> go test ./... -> rebuild/deploy
+  bukupay test              Jalankan go test ./...
+  bukupay logs [N]          Tampilkan log aplikasi (default 80 baris)
+  bukupay follow            Pantau log aplikasi secara live
+  bukupay tunnel-logs [N]   Tampilkan log Quick Tunnel
+  bukupay backup            Backup data/bukupay.db
+  bukupay reset-db          Reset hanya database Bukupay (dengan konfirmasi)
+  bukupay doctor            Diagnosis aplikasi + tunnel
+  bukupay help              Tampilkan bantuan ini
+
+Environment opsional:
+  BUKUPAY_REPO              Default: ~/Search-Engine-B2B
+
+Catatan:
+  - reset-db tidak menghapus data/prospects.db
+  - update tidak mengganti branch dan berhenti jika ada perubahan lokal
+  - URL trycloudflare.com dapat berubah setelah Quick Tunnel restart
+EOF
+}
+
+main() {
+  case "${1:-help}" in
+    status) shift; cmd_status "$@" ;;
+    url) shift; cmd_url "$@" ;;
+    start) shift; cmd_start "$@" ;;
+    stop) shift; cmd_stop "$@" ;;
+    restart) shift; cmd_restart "$@" ;;
+    update) shift; cmd_update "$@" ;;
+    test) shift; cmd_test "$@" ;;
+    logs) shift; cmd_logs "$@" ;;
+    follow) shift; cmd_follow "$@" ;;
+    tunnel-logs) shift; cmd_tunnel_logs "$@" ;;
+    backup) shift; cmd_backup "$@" ;;
+    reset-db) shift; cmd_reset_db "$@" ;;
+    doctor) shift; cmd_doctor "$@" ;;
+    help|-h|--help) cmd_help ;;
+    *)
+      err "Perintah tidak dikenal: $1"
+      say
+      cmd_help
+      exit 2
+      ;;
+  esac
+}
+
+main "$@"
