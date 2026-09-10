@@ -4,13 +4,8 @@
   const main = document.getElementById('main');
   if (!template || !main) return;
 
-  const heading = main.querySelector('.p3-heading');
   const fragment = template.content.cloneNode(true);
-  if (heading && heading.parentNode) {
-    heading.insertAdjacentElement('afterend', fragment.firstElementChild);
-  } else {
-    main.prepend(fragment);
-  }
+  main.append(fragment);
 
   const card = document.getElementById('daily-visit-report');
   const form = document.getElementById('daily-report-form');
@@ -54,7 +49,7 @@
   }
 
   async function loadReport() {
-    status.textContent = 'Menyiapkan report…';
+    status.textContent = 'Menyiapkan laporan…';
     output.hidden = true;
     copyStatus.textContent = '';
     const params = new URLSearchParams();
@@ -65,12 +60,12 @@
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
       if (!areasLoaded) populateAreas(data.areas || [], data.location || '');
-      text.value = data.text || 'Belum ada report.';
-      status.textContent = `${data.total_visited || 0} merchant visit · ${data.route_done || 0}/${data.route_target || 0} rute selesai`;
+      text.value = data.text || 'Belum ada laporan.';
+      status.textContent = `${data.total_visited || 0} merchant dikunjungi · ${data.route_done || 0}/${data.route_target || 0} rute selesai`;
       output.hidden = false;
       loadedOnce = true;
     } catch (error) {
-      status.textContent = `Report gagal dimuat: ${String(error.message || error).trim()}`;
+      status.textContent = `Laporan gagal dimuat: ${String(error.message || error).trim()}`;
     }
   }
 
@@ -95,9 +90,9 @@
         document.execCommand('copy');
         text.setSelectionRange(0, 0);
       }
-      copyStatus.textContent = 'Report berhasil dicopy.';
+      copyStatus.textContent = 'Laporan berhasil disalin.';
     } catch (error) {
-      copyStatus.textContent = 'Copy gagal. Pilih teks lalu copy manual.';
+      copyStatus.textContent = 'Gagal menyalin. Pilih teks lalu salin manual.';
     }
   });
 })();
