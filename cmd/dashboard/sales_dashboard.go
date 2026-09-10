@@ -79,10 +79,11 @@ func (a *app) handleSalesDashboard(w http.ResponseWriter, r *http.Request) {
 	data.KPIs = []dashboardStat{
 		{"Visit Hari Ini", "kunjungan tercatat hari ini", "calendar", "blue", "#activity", summary.VisitedToday},
 		{"Revisit Due", "perlu ditindaklanjuti", "clock", "amber", "/contact?mode=follow_up", summary.RevisitDue},
-		{"Interested", "merchant tertarik", "users", "green", "/merchants?status=interested", pipeline.Interested},
+		{"Interested", "merchant tertarik", "users", "green", "/merchants?status=interested", summary.RevisitDue},
 		{"Follow Up", "dalam proses", "clipboard", "purple", "/merchants?status=follow_up", pipeline.FollowUp},
 		{"Active", "merchant aktif", "store", "rose", "/merchants?status=active", pipeline.Active},
 	}
+	data.KPIs[2].Count = pipeline.Interested
 	// Coverage (unvisited/planned/visited/revisit) is shown separately in Area
 	// Planner and Merchant. The dashboard sales pipeline starts at presentation.
 	data.Stages = []dashboardStat{
@@ -97,6 +98,11 @@ func (a *app) handleSalesDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	for i := range data.Stages {
 		data.Stages[i].URL = "/merchants?status=" + data.Stages[i].URL + "&location=" + url.QueryEscape(location)
+	}
+
+	routeLocation := location
+	if routeLocation == "" && len(summary.Areas) == 1 {
+		routeLocation = summary.Areas[0]
 	}
 	for i, route := range []prospectstore.DashboardRoute{summary.TodayRoute, summary.TomorrowRoute} {
 		v := dashboardRouteView{DashboardRoute: route}
@@ -123,6 +129,9 @@ func (a *app) handleSalesDashboard(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			v.URL = "/visit-plans/new?plan_date=" + date
+			if routeLocation != "" {
+				v.URL += "&location=" + url.QueryEscape(routeLocation)
+			}
 			v.DetailURL = v.URL
 			if i == 0 {
 				v.Action = "Buat Rute Hari Ini"
