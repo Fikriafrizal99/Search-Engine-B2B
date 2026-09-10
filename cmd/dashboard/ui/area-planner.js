@@ -79,7 +79,11 @@
  $('saved-area').onchange=()=>restore($('saved-area').value);$('geo-retry').onclick=()=>retry();
  scrapeModes.forEach(input=>input.addEventListener('change',syncScrapeMode));
  manualKeywords?.addEventListener('input',syncScrapeMode);manualIncludeDefaults?.addEventListener('change',syncScrapeMode);
- function recommendation(text,href){const li=document.createElement('li');if(href){const a=document.createElement('a');a.href=href;a.textContent=text;li.append(a);}else li.textContent=text;$('area-recommendations').append(li);}
+ function recommendation(text,href,label='Buka'){
+  const box=document.createElement(href?'a':'div');box.className='area-next-action';if(href)box.href=href;
+  const copy=document.createElement('span'),strong=document.createElement('strong'),small=document.createElement('small');strong.textContent=text;small.textContent=href?label:'Gunakan aksi utama pada halaman ini.';copy.append(strong,small);
+  const icon=document.createElement('span');icon.className='ui-iconbox blue ui-round';const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'),use=document.createElementNS('http://www.w3.org/2000/svg','use');svg.classList.add('ui-icon');use.setAttribute('href','#icon-arrow');svg.append(use);icon.append(svg);box.append(copy,icon);$('area-recommendations').replaceChildren(box);
+ }
  function snapshot(count,text,icon='store',tone='blue'){
   const row=document.createElement('p'),box=document.createElement('span'),body=document.createElement('span'),b=document.createElement('strong');
   box.className='ui-iconbox '+tone;const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'),use=document.createElementNS('http://www.w3.org/2000/svg','use');
@@ -109,15 +113,16 @@
    $('route-link').querySelector('span').textContent=s.TomorrowPlanID?'Lihat Rute Besok':'Buat Rute Besok';
    $('area-snapshot').replaceChildren();snapshot(s.WithPhone,'merchant dengan telepon','phone','green');snapshot(s.WithMaps,'merchant dengan tautan Maps','map');
    (s.Categories||[]).forEach(c=>snapshot(c.Count,'merchant · '+c.Name));snapshot(s.MissingCoordinates,'merchant tanpa koordinat valid','pin','amber');snapshot(s.EligibleTomorrow,'merchant siap dirutekan besok','route','purple');
-   $('area-recommendations').replaceChildren();
-   if(!data.exists)recommendation('Scrape kelurahan ini untuk membangun database merchant.');
-   else if(s.TomorrowPlanID)recommendation('Lanjutkan rute besok yang sudah tersimpan.','/visit-plan/'+s.TomorrowPlanID);
-   else if(s.EligibleTomorrow>0)recommendation(`Buat rute besok dari ${s.EligibleTomorrow} merchant yang memenuhi syarat.`,route);
-   else recommendation('Belum ada merchant yang memenuhi syarat rute besok. Periksa status kunjungan dan jadwal revisit.','/merchants?location='+encoded);
-   if(q.RevisitRequired>0)recommendation(`Tinjau ${q.RevisitRequired} merchant dengan status revisit.`,'/contact?mode=follow_up');
-   if(s.MissingCoordinates>0)recommendation(`Tinjau ${s.MissingCoordinates} merchant tanpa koordinat valid.`,'/database?location='+encoded);
+
    const next=[...$('saved-area').options].find(o=>o.value&&o.value!==scope&&Number(o.dataset.remaining)>0);
-   if(next)recommendation('Area berikut dengan sisa coverage terbanyak: '+next.value,'/areas?location='+encodeURIComponent(next.value));
+   if(!data.exists)recommendation('Scrape kelurahan ini untuk membangun database merchant.',null,'Scrape Kelurahan Ini');
+   else if(status==='completed'&&next)recommendation('Coverage selesai. Lanjut ke area berikutnya: '+next.value,'/areas?location='+encodeURIComponent(next.value),'Pilih Area Berikutnya');
+   else if(status==='completed')recommendation('Coverage area ini selesai. Pilih area kerja berikutnya.','/areas','Pilih Area Berikutnya');
+   else if(s.TomorrowPlanID)recommendation('Rute besok sudah tersimpan.','/visit-plan/'+s.TomorrowPlanID,'Lihat Rute Besok');
+   else if(s.EligibleTomorrow>0)recommendation(`Siapkan rute besok dari ${s.EligibleTomorrow} merchant yang siap dikunjungi.`,route,'Buat Rute Besok');
+   else if(q.RevisitRequired>0)recommendation(`${q.RevisitRequired} merchant perlu revisit sesuai jadwal.`,'/contact?mode=follow_up','Buka Revisit Queue');
+   else if(s.MissingCoordinates>0)recommendation(`${s.MissingCoordinates} merchant belum memiliki koordinat valid.`,'/database?location='+encoded,'Periksa Database');
+   else recommendation('Belum ada kandidat rute baru. Tinjau merchant area ini.','/merchants?location='+encoded,'Lihat Merchant Area');
   }catch(e){if(e.name==='AbortError')return;clearCoverage(e.message);$('coverage-status').textContent='ERROR';$('coverage-message').className='p2-message p2-error';const b=document.createElement('button');b.type='button';b.className='ui-button ui-compact';b.textContent='Coba lagi';b.onclick=()=>loadCoverage(scope);$('coverage-message').append(' ',b);}
   finally{if(!signal.aborted)$('coverage-section').setAttribute('aria-busy','false');syncScrapeMode();}
  }
