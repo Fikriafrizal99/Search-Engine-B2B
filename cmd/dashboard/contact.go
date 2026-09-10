@@ -294,6 +294,16 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 	owner := strings.TrimSpace(r.FormValue("owner"))
 	note := strings.TrimSpace(r.FormValue("note"))
 	channel := strings.TrimSpace(strings.ToLower(r.FormValue("channel")))
+	if planID > 0 {
+		// Route execution is always a physical visit. Ignore crafted channel fields.
+		channel = "visit"
+	}
+	if channel == "visit" || channel == "manual" {
+		if !prospectstore.IsFieldVisitResult(result) {
+			http.Error(w, "hasil Visit Session tidak valid; tahap Registration/Installation/Installed/Active diubah dari Merchant Detail", http.StatusBadRequest)
+			return
+		}
+	}
 
 	if next.IsZero() {
 		now := time.Now()
@@ -373,18 +383,18 @@ func executionLabel(v string) string {
 	return labels(map[string]string{
 		"new": "Belum dikunjungi", "contacted": "Sudah dihubungi", "retry": "Coba lagi", "follow_up": "Follow Up",
 		"visited": "Sudah dikunjungi", "presented": "Sudah presentasi", "interested": "Tertarik", "registered": "Terdaftar",
-		"installed": "Terpasang", "active": "Aktif", "not_interested": "Tidak tertarik", "already_soundbox": "Sudah punya Soundbox",
+		"installed": "Soundbox Bukupay terpasang", "active": "Aktif Bukupay", "not_interested": "Tidak tertarik", "already_soundbox": "Sudah punya Soundbox sebelumnya",
 		"wrong_number": "Nomor salah", "unreachable": "Tidak terhubung",
 	}, v, "Belum dikunjungi")
 }
 
 func contactResultLabel(v string) string {
 	return labels(map[string]string{
-		"no_answer": "Tidak diangkat", "busy": "Sibuk / hubungi lagi", "store_closed": "Toko tutup",
+		"no_answer": "Tidak diangkat", "busy": "Sibuk / hubungi lagi", "store_closed": "Toko tutup sementara",
 		"owner_not_found": "Owner/PIC tidak ada", "requested_wa": "Minta WhatsApp", "wa_sent": "WhatsApp terkirim",
-		"visited": "Sudah dikunjungi", "presented": "Sudah presentasi", "follow_up": "Jadwalkan follow-up",
-		"interested": "Tertarik", "registered": "Sudah registrasi", "installed": "Soundbox terpasang", "active": "Merchant aktif",
-		"already_soundbox": "Sudah punya Soundbox", "not_interested": "Tidak tertarik", "wrong_number": "Nomor salah", "unreachable": "Tidak terhubung",
+		"visited": "Kunjungan selesai — belum presentasi", "presented": "Sudah presentasi Bukupay", "follow_up": "Perlu follow-up",
+		"interested": "Tertarik", "registered": "Sudah registrasi Bukupay", "installed": "Soundbox Bukupay terpasang", "active": "Aktif Bukupay",
+		"already_soundbox": "Sudah punya Soundbox sebelumnya", "not_interested": "Tidak tertarik", "wrong_number": "Nomor salah", "unreachable": "Tidak terhubung",
 	}, v, v)
 }
 
