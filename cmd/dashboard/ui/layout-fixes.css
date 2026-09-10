@@ -1,0 +1,50 @@
+/* Stabilization overrides: keep summary groups visually centered on wide screens. */
+.sales-dashboard .sales-pipeline-grid {
+  grid-template-columns: repeat(8, minmax(120px, 1fr));
+  max-width: 1120px;
+  margin-inline: auto;
+}
+
+.sales-dashboard .sales-bottom-simplified {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 980px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.merchant-pipeline .merchant-stages {
+  grid-template-columns: repeat(auto-fit, minmax(145px, 160px));
+  justify-content: center;
+}
+
+.merchant-pipeline .merchant-exceptions {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 245px));
+  justify-content: center;
+}
+
+@media (max-width: 1100px) {
+  .sales-dashboard .sales-pipeline-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    max-width: none;
+  }
+
+  .sales-dashboard .sales-bottom-simplified {
+    grid-template-columns: 1fr;
+    max-width: 720px;
+  }
+
+  .sales-dashboard .sales-pipeline-grid .sales-stage::after,
+  .merchant-pipeline .merchant-stages .sales-stage::after {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .merchant-pipeline .merchant-stages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .merchant-pipeline .merchant-exceptions {
+    grid-template-columns: 1fr;
+  }
+}
