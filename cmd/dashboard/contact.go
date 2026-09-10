@@ -14,12 +14,26 @@ import (
 	"github.com/Fikriafrizal99/Search-Engine-B2B/internal/prospectstore"
 )
 
+type contactRouteContext struct {
+	Active             bool
+	PlanID             int64
+	PlanDate           string
+	Area               string
+	Sequence           int
+	Total              int
+	Done               int
+	Remaining          int
+	PreviousProspectID int64
+	NextProspectID     int64
+}
+
 type contactPageData struct {
 	Lead     prospectstore.ContactLead
 	Stats    prospectstore.ExecutionStats
 	Pipeline prospectstore.BukupayPipelineStats
 	Summary  prospectstore.SalesDashboardSummary
 	Nav      prospectstore.ContactNavigation
+	Route    contactRouteContext
 	Mode     string
 	Empty    bool
 }
@@ -60,6 +74,78 @@ func registerContactRoutes(mux *http.ServeMux, a *app) {
 	registerMerchantRoutes(mux, a)
 }
 
+func parseOptionalPositiveInt64(raw string) (int64, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, nil
+	}
+	id, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || id <= 0 {
+		return 0, fmt.Errorf("invalid id")
+	}
+	return id, nil
+}
+
+func routeContactContext(plan prospectstore.VisitPlan, prospectID int64) (contactRouteContext, error) {
+	ctx := contactRouteContext{Active: true, PlanID: plan.ID, PlanDate: plan.PlanDate, Area: plan.LocationScope, Total: len(plan.Items)}
+	index := -1
+	for i, item := range plan.Items {
+		if item.Status != prospectstore.VisitPlanned {
+			ctx.Done++
+		}
+		if item.Prospect.ID == prospectID {
+			index = i
+			ctx.Sequence = item.Sequence
+		}
+	}
+	ctx.Remaining = ctx.Total - ctx.Done
+	if ctx.Remaining < 0 {
+		ctx.Remaining = 0
+	}
+	if index < 0 {
+		return contactRouteContext{}, fmt.Errorf("merchant tidak ada pada rute ini")
+	}
+	if index > 0 {
+		ctx.PreviousProspectID = plan.Items[index-1].Prospect.ID
+	}
+	if index+1 < len(plan.Items) {
+		ctx.NextProspectID = plan.Items[index+1].Prospect.ID
+	}
+	return ctx, nil
+}
+
+func firstPlannedProspect(plan prospectstore.VisitPlan) int64 {
+	for _, item := range plan.Items {
+		if item.Status == prospectstore.VisitPlanned {
+			return item.Prospect.ID
+		}
+	}
+	return 0
+}
+
+func nextPlannedProspect(plan prospectstore.VisitPlan, currentProspectID int64) int64 {
+	current := -1
+	for i, item := range plan.Items {
+		if item.Prospect.ID == currentProspectID {
+			current = i
+			break
+		}
+	}
+	if current >= 0 {
+		for i := current + 1; i < len(plan.Items); i++ {
+			if plan.Items[i].Status == prospectstore.VisitPlanned {
+				return plan.Items[i].Prospect.ID
+			}
+		}
+	}
+	for i := 0; i < len(plan.Items); i++ {
+		if plan.Items[i].Status == prospectstore.VisitPlanned {
+			return plan.Items[i].Prospect.ID
+		}
+	}
+	return 0
+}
+
 func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 	if err := a.store.SyncContactProfileStatus(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -89,14 +175,49 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	planID, err := parseOptionalPositiveInt64(r.URL.Query().Get("plan_id"))
+	if err != nil {
+		http.Error(w, "visit plan id tidak valid", http.StatusBadRequest)
+		return
+	}
+	prospectID, err := parseOptionalPositiveInt64(r.URL.Query().Get("id"))
+	if err != nil {
+		http.Error(w, "invalid prospect id", http.StatusBadRequest)
+		return
+	}
+
 	var lead prospectstore.ContactLead
-	if idRaw := strings.TrimSpace(r.URL.Query().Get("id")); idRaw != "" {
-		id, err := strconv.ParseInt(idRaw, 10, 64)
-		if err != nil || id <= 0 {
-			http.Error(w, "invalid prospect id", http.StatusBadRequest)
+	var route contactRouteContext
+	if planID > 0 {
+		plan, err := a.store.GetVisitPlan(r.Context(), planID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-		lead, err = a.store.ContactLead(r.Context(), id)
+		if prospectID == 0 {
+			prospectID = firstPlannedProspect(plan)
+			if prospectID == 0 {
+				http.Redirect(w, r, fmt.Sprintf("/visit-plan/%d?completed=1", planID), http.StatusSeeOther)
+				return
+			}
+		}
+		lead, err = a.store.ContactLead(r.Context(), prospectID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		route, err = routeContactContext(plan, prospectID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		renderPhase2(w, contactTmpl, contactPageData{Lead: lead, Stats: stats, Pipeline: pipeline, Summary: summary, Route: route, Mode: mode})
+		return
+	}
+
+	if prospectID > 0 {
+		lead, err = a.store.ContactLead(r.Context(), prospectID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
@@ -138,6 +259,23 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 	if mode != "new" && mode != "follow_up" {
 		mode = "all"
 	}
+	planID, err := parseOptionalPositiveInt64(r.FormValue("plan_id"))
+	if err != nil {
+		http.Error(w, "visit plan id tidak valid", http.StatusBadRequest)
+		return
+	}
+	if planID > 0 {
+		plan, err := a.store.GetVisitPlan(r.Context(), planID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		if _, err := routeContactContext(plan, id); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
 	var next time.Time
 	if raw := strings.TrimSpace(r.FormValue("next_follow_up")); raw != "" {
 		next, err = time.ParseInLocation("2006-01-02T15:04", raw, jakartaLocation)
@@ -189,6 +327,20 @@ func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+	}
+
+	if planID > 0 {
+		plan, err := a.store.GetVisitPlan(r.Context(), planID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if nextID := nextPlannedProspect(plan, id); nextID > 0 {
+			http.Redirect(w, r, fmt.Sprintf("/contact?plan_id=%d&id=%d", planID, nextID), http.StatusSeeOther)
+			return
+		}
+		http.Redirect(w, r, fmt.Sprintf("/visit-plan/%d?completed=1", planID), http.StatusSeeOther)
+		return
 	}
 	http.Redirect(w, r, "/contact?mode="+url.QueryEscape(mode), http.StatusSeeOther)
 }
