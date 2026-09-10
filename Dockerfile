@@ -23,4 +23,4 @@ RUN mkdir -p /app/data && chmod -R a+rwX /app/data
 EXPOSE 8082
 
 ENTRYPOINT ["/app/bin/bukupay-dashboard"]
-CMD ["-addr", ":8082", "-db", "/app/data/prospects.db", "-geo-cache", "/app/data/geo-cache", "-config-dir", "/app/config", "-collector", "/app/bin/search-engine-b2b", "-engine", "/usr/bin/google-maps-scraper"]
+CMD ["-addr", ":8082", "-db", "/app/data/bukupay.db", "-geo-cache", "/app/data/geo-cache", "-config-dir", "/app/config", "-collector", "/app/bin/search-engine-b2b", "-engine", "/usr/bin/google-maps-scraper"]
