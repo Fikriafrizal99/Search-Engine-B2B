@@ -78,22 +78,22 @@ func (a *app) handleSalesDashboard(w http.ResponseWriter, r *http.Request) {
 	data := salesDashboardData{Summary: summary, Today: days[local.Weekday()] + ", " + local.Format("02 Jan 2006"), DateISO: local.Format("2006-01-02"), Location: location}
 	data.KPIs = []dashboardStat{
 		{"Visit Hari Ini", "kunjungan tercatat hari ini", "calendar", "blue", "#activity", summary.VisitedToday},
-		{"Revisit Due", "perlu ditindaklanjuti", "clock", "amber", "/contact?mode=follow_up", summary.RevisitDue},
-		{"Interested", "merchant tertarik", "users", "green", "/merchants?status=interested", pipeline.Interested},
-		{"Follow Up", "dalam proses", "clipboard", "purple", "/merchants?status=follow_up", pipeline.FollowUp},
-		{"Active", "merchant aktif", "store", "rose", "/merchants?status=active", pipeline.Active},
+		{"Revisit", "perlu ditindaklanjuti", "clock", "amber", "/contact?mode=follow_up", summary.RevisitDue},
+		{"Tertarik", "merchant tertarik", "users", "green", "/merchants?status=interested", pipeline.Interested},
+		{"Follow-up", "dalam proses", "clipboard", "purple", "/merchants?status=follow_up", pipeline.FollowUp},
+		{"Aktif", "merchant aktif", "store", "rose", "/merchants?status=active", pipeline.Active},
 	}
 	// Coverage (unvisited/planned/visited/revisit) is shown separately in Area
 	// Planner and Merchant. The dashboard sales pipeline starts at presentation.
 	data.Stages = []dashboardStat{
-		{"PRESENTED", "sudah presentasi", "file", "blue", "presented", filtered.Presented},
-		{"INTERESTED", "merchant tertarik", "heart", "rose", "interested", filtered.Interested},
-		{"FOLLOW UP", "perlu tindak lanjut", "clock", "amber", "follow_up", filtered.FollowUp},
-		{"REGISTRATION", "proses daftar", "file", "slate", "registration", filtered.Registration},
-		{"REGISTERED", "sudah terdaftar", "check", "blue", "registered", filtered.Registered},
-		{"INSTALLATION", "proses pasang", "tool", "purple", "installation", filtered.Installation},
-		{"INSTALLED", "Soundbox terpasang", "plug", "purple", "installed", filtered.Installed},
-		{"ACTIVE", "merchant aktif", "store", "green", "active", filtered.Active},
+		{"Sudah Presentasi", "sudah presentasi", "file", "blue", "presented", filtered.Presented},
+		{"Tertarik", "merchant tertarik", "heart", "rose", "interested", filtered.Interested},
+		{"Follow-up", "perlu tindak lanjut", "clock", "amber", "follow_up", filtered.FollowUp},
+		{"Registrasi", "proses daftar", "file", "slate", "registration", filtered.Registration},
+		{"Terdaftar", "sudah terdaftar", "check", "blue", "registered", filtered.Registered},
+		{"Pemasangan", "proses pasang", "tool", "purple", "installation", filtered.Installation},
+		{"Terpasang", "Soundbox terpasang", "plug", "purple", "installed", filtered.Installed},
+		{"Aktif", "merchant aktif", "store", "green", "active", filtered.Active},
 	}
 	for i := range data.Stages {
 		data.Stages[i].URL = "/merchants?status=" + data.Stages[i].URL + "&location=" + url.QueryEscape(location)
