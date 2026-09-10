@@ -34,10 +34,13 @@ func TestSalesDashboardRender(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("render: %d %s", w.Code, w.Body.String())
 	}
-	for _, want := range []string{"Belum ada prioritas hari ini", "Belum ada aktivitas tercatat", "aria-current=\"page\"", "/assets/bukupay-ui-v2.css", "TO VISIT", "FOLLOW UP", "ACTIVE"} {
+	for _, want := range []string{"Belum ada prioritas hari ini", "Belum ada aktivitas tercatat", "aria-current=\"page\"", "/assets/bukupay-ui-v2.css", "PRESENTED", "FOLLOW UP", "ACTIVE"} {
 		if !strings.Contains(w.Body.String(), want) {
 			t.Errorf("missing %q", want)
 		}
+	}
+	if strings.Contains(w.Body.String(), ">TO VISIT<") || strings.Contains(w.Body.String(), ">VISITED<") {
+		t.Fatal("coverage statuses leaked into dashboard sales pipeline")
 	}
 	if strings.Contains(w.Body.String(), "ZgotmplZ") {
 		t.Fatal("invalid template URL")
