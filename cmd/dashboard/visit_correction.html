@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Koreksi Visit · Bukupay</title><link rel="stylesheet" href="/assets/bukupay-ui-v2.css"><link rel="stylesheet" href="/assets/phase3.css"></head>
+<body class="ui-body">{{template "ui-symbols"}}{{template "ui-nav" "contact"}}
+<main class="ui-container phase3" id="main">
+ <div class="p3-heading"><div><p class="ui-eyebrow">VISIT CORRECTION</p><h1>Koreksi Hasil Visit</h1><p class="ui-subtitle">Perbaiki visit terbaru tanpa menambah jumlah kunjungan. Nilai sebelumnya tetap disimpan sebagai audit koreksi.</p></div><a class="ui-button ui-outline" href="/merchant/{{.Merchant.ID}}">← Kembali ke Merchant</a></div>
+ <div class="p3-grid">
+  <section class="ui-card p3-panel">
+   <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="blue">{{template "ui-icon" "clipboard"}}</span><div><h2>{{.Prospect.Title}}</h2><p class="ui-muted">Visit {{contactTime .Visit.VisitedAt}} · hasil sekarang: {{resultLabel .Visit.VisitResult}}</p></div></div></div>
+   <div class="p3-note p3-warn"><strong>Hanya visit terbaru yang dapat dikoreksi.</strong><div>Koreksi akan memperbarui Coverage Visit dan Sales Status yang terkait, tetapi tidak menambah Visit Count.</div></div>
+   <form method="post" action="/merchant/{{.Merchant.ID}}/visit/{{.Visit.ID}}/edit" style="margin-top:14px">
+    <div class="p3-form-grid">
+     <label class="p3-field">Hasil yang benar<select id="result" name="result" required>
+      <option value="visited" {{if eq .Visit.VisitResult "visited"}}selected{{end}}>Kunjungan selesai — belum presentasi</option>
+      <option value="presented" {{if eq .Visit.VisitResult "presented"}}selected{{end}}>Sudah presentasi Bukupay</option>
+      <option value="interested" {{if eq .Visit.VisitResult "interested"}}selected{{end}}>Tertarik — lanjut proses</option>
+      <option value="follow_up" {{if eq .Visit.VisitResult "follow_up"}}selected{{end}}>Perlu follow-up</option>
+      <option value="already_soundbox" {{if eq .Visit.VisitResult "already_soundbox"}}selected{{end}}>Sudah punya Soundbox sebelumnya</option>
+      <option value="not_interested" {{if eq .Visit.VisitResult "not_interested"}}selected{{end}}>Tidak tertarik</option>
+      <option value="owner_not_found" {{if eq .Visit.VisitResult "owner_not_found"}}selected{{end}}>Owner / PIC tidak ada</option>
+      <option value="store_closed" {{if eq .Visit.VisitResult "store_closed"}}selected{{end}}>Toko tutup sementara</option>
+     </select></label>
+     <label class="p3-field">Nama Owner / PIC<input name="owner" value="{{.Visit.PICName}}"></label>
+     <label class="p3-field">Next Follow-up (WIB)<input id="next-follow-up" type="datetime-local" name="next_follow_up" value="{{inputTime .Visit.NextActionAt}}"></label>
+     <label class="p3-field p3-full">Catatan Lapangan<textarea name="note">{{.Visit.Note}}</textarea></label>
+    </div>
+    <div class="p3-save"><button class="ui-button ui-primary">Simpan Koreksi</button></div>
+   </form>
+  </section>
+  <aside><section class="ui-card p3-panel"><div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="blue">{{template "ui-icon" "target"}}</span><div><h2>Dampak Koreksi</h2><p class="ui-muted">Sistem menjaga state tetap konsisten.</p></div></div></div><div class="p3-info-grid"><div class="p3-info"><small>Visit Count</small><strong>Tetap</strong></div><div class="p3-info"><small>Visit History</small><strong>Diperbaiki</strong></div><div class="p3-info"><small>Audit</small><strong>Disimpan</strong></div><div class="p3-info"><small>Sales Status</small><strong>Diselaraskan</strong></div></div></section></aside>
+ </div>
+</main>
+<script>const result=document.getElementById('result'),next=document.getElementById('next-follow-up');function syncRequired(){if(!result||!next)return;next.required=result.value==='follow_up';}if(result){result.addEventListener('change',syncRequired);syncRequired();}</script>
+</body></html>
