@@ -80,7 +80,7 @@ func TestPhase3OperationalPagesRender(t *testing.T) {
 		{"/database", "Database Merchant"},
 		{"/visit-plans/new?location=" + url.QueryEscape(scope), "Buat Rute Kunjungan"},
 		{fmt.Sprintf("/merchant/%d", merchant.ID), "Sales Workspace"},
-		{"/assets/phase3.css", ".phase3"},
+		{"/assets/phase3.css", "Final Bukupay UI polish"},
 	}
 	for _, tc := range checks {
 		w := httptest.NewRecorder()
@@ -108,7 +108,11 @@ func TestPhase3OperationalPagesRender(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, fmt.Sprintf("/visit-plan/%d", plan.ID), nil))
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Urutan Rute") || !strings.Contains(w.Body.String(), "OSRM road routing") || !strings.Contains(w.Body.String(), fmt.Sprintf("/contact?plan_id=%d", plan.ID)) {
-		t.Fatalf("route page: %d %s", w.Code, w.Body.String())
+	body := w.Body.String()
+	if w.Code != http.StatusOK || !strings.Contains(body, "Urutan Kunjungan") || !strings.Contains(body, "Titik awal rute") || !strings.Contains(body, fmt.Sprintf("/contact?plan_id=%d", plan.ID)) {
+		t.Fatalf("route page: %d %s", w.Code, body)
+	}
+	if strings.Contains(body, "OSRM") || strings.Contains(body, "Haversine") {
+		t.Fatalf("routing internals leaked into route page: %s", body)
 	}
 }
