@@ -49,11 +49,11 @@ var merchantFuncs = template.FuncMap{
 		}
 	},
 	"qualificationLabel": func(value string) string {
-		return labels(map[string]string{"low": "Rendah", "medium": "Sedang", "high": "Tinggi", "cold": "Cold", "warm": "Warm", "hot": "Hot"}, value, "Belum dinilai")
+		return labels(map[string]string{"low": "Rendah", "medium": "Sedang", "high": "Tinggi", "cold": "Dingin", "warm": "Hangat", "hot": "Panas"}, value, "Belum dinilai")
 	},
 	"visitLabel": func(value string) string {
 		return labels(map[string]string{
-			"unvisited": "Belum dikunjungi", "planned": "Planned", "visited": "Visited", "revisit_required": "Revisit", "excluded": "Excluded",
+			"unvisited": "Belum dikunjungi", "planned": "Masuk rute", "visited": "Sudah dikunjungi", "revisit_required": "Perlu revisit", "excluded": "Dikecualikan",
 		}, value, value)
 	},
 }
@@ -85,7 +85,7 @@ func (a *app) handleMerchantPipeline(w http.ResponseWriter, r *http.Request) {
 	f := prospectstore.MerchantListFilter{Status: status, Location: location, Search: strings.TrimSpace(r.URL.Query().Get("q")), Due: r.URL.Query().Get("due") == "1", Limit: 25}
 	count, err := a.store.MerchantListCount(r.Context(), f, now)
 	if err != nil {
-		renderPhase2Error(w, http.StatusBadRequest, "Merchant Pipeline", err)
+		renderPhase2Error(w, http.StatusBadRequest, "Sales", err)
 		return
 	}
 	pages := (count + f.Limit - 1) / f.Limit
@@ -98,22 +98,22 @@ func (a *app) handleMerchantPipeline(w http.ResponseWriter, r *http.Request) {
 	f.Offset = (page - 1) * f.Limit
 	items, err := a.store.FilterMerchantPipeline(r.Context(), f, now)
 	if err != nil {
-		renderPhase2Error(w, http.StatusInternalServerError, "Merchant Pipeline", err)
+		renderPhase2Error(w, http.StatusInternalServerError, "Sales", err)
 		return
 	}
 	stats, err := a.store.BukupayPipelineStats(r.Context(), now, location)
 	if err != nil {
-		renderPhase2Error(w, http.StatusInternalServerError, "Merchant Pipeline", err)
+		renderPhase2Error(w, http.StatusInternalServerError, "Sales", err)
 		return
 	}
 	coverage, err := a.store.CoverageOverview(r.Context(), location)
 	if err != nil {
-		renderPhase2Error(w, http.StatusInternalServerError, "Merchant Pipeline", err)
+		renderPhase2Error(w, http.StatusInternalServerError, "Sales", err)
 		return
 	}
 	areas, err := a.store.MerchantAreas(r.Context())
 	if err != nil {
-		renderPhase2Error(w, http.StatusInternalServerError, "Merchant Pipeline", err)
+		renderPhase2Error(w, http.StatusInternalServerError, "Sales", err)
 		return
 	}
 	data := merchantPipelinePageData{Items: items, Stats: stats, Coverage: coverage, Status: status, Location: location, Search: f.Search, Due: f.Due, Areas: areas, Count: count, Page: page, Pages: pages}
@@ -251,11 +251,11 @@ func (a *app) handleMerchantUpdate(w http.ResponseWriter, r *http.Request) {
 
 func merchantStatusLabel(v string) string {
 	return labels(map[string]string{
-		"to_visit": "Belum masuk Sales Pipeline", "visited": "Belum masuk Sales Pipeline", "presented": "Presented", "interested": "Interested",
-		"follow_up": "Follow Up", "registration": "Registration", "registered": "Registered",
-		"installation": "Installation", "installed": "Soundbox Bukupay Terpasang", "active": "Aktif Bukupay",
+		"to_visit": "Belum masuk pipeline", "visited": "Belum masuk pipeline", "presented": "Sudah Presentasi", "interested": "Tertarik",
+		"follow_up": "Follow-up", "registration": "Registrasi", "registered": "Terdaftar",
+		"installation": "Pemasangan", "installed": "Soundbox Terpasang", "active": "Aktif",
 		"not_interested": "Tidak Tertarik", "owner_not_found": "Revisit / Owner Tidak Ada",
-		"already_soundbox": "Sudah Punya Soundbox Sebelumnya", "closed": "Tutup", "invalid_lead": "Invalid Lead",
+		"already_soundbox": "Sudah Punya Soundbox Sebelumnya", "closed": "Tutup", "invalid_lead": "Data Tidak Valid",
 	}, v, v)
 }
 
