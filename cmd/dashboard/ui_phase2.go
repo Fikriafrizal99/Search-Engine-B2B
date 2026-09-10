@@ -92,6 +92,7 @@ func registerPhase2Assets(mux *http.ServeMux) {
 	for _, asset := range []struct{ name, mime string }{
 		{"phase2.css", "text/css"},
 		{"phase3.css", "text/css"},
+		{"database-mobile.css", "text/css"},
 		{"scrape-mode.css", "text/css"},
 		{"area-planner.js", "text/javascript"},
 	} {
