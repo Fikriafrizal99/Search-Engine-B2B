@@ -85,3 +85,48 @@ func (s *Store) CoverageProgress(ctx context.Context, locationScope string) (Cov
 		scope, out.Status, now, now, now)
 	return out, nil
 }
+
+// CoverageOverview returns canonical canvassing counts. When locationScope is
+// empty it aggregates all stored prospects, allowing UI pages to separate
+// coverage progress from merchant sales stages without relying on sales status.
+func (s *Store) CoverageOverview(ctx context.Context, locationScope string) (CoverageProgress, error) {
+	scope := strings.TrimSpace(locationScope)
+	if scope != "" {
+		return s.CoverageProgress(ctx, scope)
+	}
+	if err := s.ensureVisitPlanningSchema(ctx); err != nil {
+		return CoverageProgress{}, err
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	if _, err := s.db.ExecContext(ctx, `INSERT OR IGNORE INTO merchant_visit_state (prospect_id,updated_at) SELECT id,? FROM prospects`, now); err != nil {
+		return CoverageProgress{}, err
+	}
+	var out CoverageProgress
+	err := s.db.QueryRowContext(ctx, `SELECT
+		COUNT(*),
+		COALESCE(SUM(CASE WHEN mvs.visit_status='unvisited' THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN mvs.visit_status='planned' THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN mvs.visit_status='visited' THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN mvs.visit_status='revisit_required' THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN mvs.visit_status='excluded' THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN p.latitude BETWEEN -90 AND 90 AND p.longitude BETWEEN -180 AND 180 AND NOT (p.latitude=0 AND p.longitude=0) THEN 1 ELSE 0 END),0)
+		FROM prospects p JOIN merchant_visit_state mvs ON mvs.prospect_id=p.id`).Scan(
+		&out.Total, &out.Unvisited, &out.Planned, &out.Visited, &out.RevisitRequired, &out.Excluded, &out.Routable,
+	)
+	if err != nil {
+		return CoverageProgress{}, err
+	}
+	processed := out.Visited + out.Excluded
+	if out.Total > 0 {
+		out.ProgressPercent = float64(processed) * 100 / float64(out.Total)
+	}
+	switch {
+	case out.Total > 0 && out.Unvisited == 0 && out.Planned == 0 && out.RevisitRequired == 0:
+		out.Status = CoverageCompleted
+	case out.Visited > 0 || out.Planned > 0 || out.RevisitRequired > 0 || out.Excluded > 0:
+		out.Status = CoverageInProgress
+	default:
+		out.Status = CoverageScraped
+	}
+	return out, nil
+}
