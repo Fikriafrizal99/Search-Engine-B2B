@@ -38,7 +38,7 @@ func TestVisitSessionSeparatesFieldResultsFromSalesStages(t *testing.T) {
 		`value="follow_up"`,
 		`value="already_soundbox"`,
 		`Sudah punya Soundbox sebelumnya`,
-		`Registration / Installation / Installed / Active hanya diubah dari Sales Workspace`,
+		`Tahap sales lanjutan dikelola di Sales Workspace`,
 	} {
 		if !strings.Contains(contactHTML, want) {
 			t.Fatalf("visit session missing %q", want)
@@ -70,7 +70,7 @@ func TestVisitSessionExposesLatestVisitCorrection(t *testing.T) {
 		t.Fatalf("visit session: %d %s", w.Code, w.Body.String())
 	}
 	body := w.Body.String()
-	if !strings.Contains(body, "Update Visit Merchant") || !strings.Contains(body, "Koreksi Visit Terakhir") || !strings.Contains(body, fmt.Sprintf("/contact/%d/visit/", prospectID)) || !strings.Contains(body, "/edit") {
+	if !strings.Contains(body, "Update Visit") || !strings.Contains(body, "Koreksi Visit Terakhir") || !strings.Contains(body, fmt.Sprintf("/contact/%d/visit/", prospectID)) || !strings.Contains(body, "/edit") {
 		t.Fatalf("latest visit correction action missing from Visit Session: %s", body)
 	}
 
@@ -97,28 +97,34 @@ func TestDatabasePolishMarkupAndResponsiveStyles(t *testing.T) {
 		`database-insights-grid`,
 		`database-insight-card`,
 		`database-insight-value`,
-		`database-flow`,
 		`databaseShortArea`,
+		`Status Pengambilan Data`,
+		`Ringkasan Data`,
 	} {
 		if !strings.Contains(bukupayDatabaseHTML, want) {
 			t.Fatalf("database template missing %q", want)
 		}
 	}
-	css, err := uiAssets.ReadFile("ui/layout-fixes.css")
+	for _, unwanted := range []string{`database-flow`, `Peran Database`, `Location Scope`, `RUNNING`, `READY`} {
+		if strings.Contains(bukupayDatabaseHTML, unwanted) {
+			t.Fatalf("database template still exposes obsolete/technical UI %q", unwanted)
+		}
+	}
+	css, err := uiAssets.ReadFile("ui/final-polish.css")
 	if err != nil {
 		t.Fatal(err)
 	}
 	text := string(css)
 	for _, want := range []string{
-		`.database-page .database-insights-grid`,
-		`.database-page .database-insight-card`,
-		`.database-page .database-flow`,
+		`.ui-body`,
+		`font-family:`,
+		`.ui-body .phase3 .p3-field`,
+		`.ui-body .database-page .database-insight-card`,
 		`font-size: 15px`,
 		`@media (max-width: 640px)`,
-		`grid-template-columns: 1fr`,
 	} {
 		if !strings.Contains(text, want) {
-			t.Fatalf("responsive typography/database CSS missing %q", want)
+			t.Fatalf("final responsive typography/database CSS missing %q", want)
 		}
 	}
 }
