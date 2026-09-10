@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	_ "embed"
 	"fmt"
@@ -27,6 +28,12 @@ type contactRouteContext struct {
 	NextProspectID     int64
 }
 
+type contactVisitContext struct {
+	State         prospectstore.VisitState
+	Visits        []prospectstore.VisitHistoryEntry
+	LatestVisitID int64
+}
+
 type contactPageData struct {
 	Lead     prospectstore.ContactLead
 	Stats    prospectstore.ExecutionStats
@@ -34,6 +41,7 @@ type contactPageData struct {
 	Summary  prospectstore.SalesDashboardSummary
 	Nav      prospectstore.ContactNavigation
 	Route    contactRouteContext
+	Visit    contactVisitContext
 	Mode     string
 	Empty    bool
 }
@@ -48,7 +56,12 @@ var contactFuncs = template.FuncMap{
 	"contactTime":   contactTime,
 	"statusTone":    dashboardStatusTone,
 	"durationLabel": durationLabel,
-	"add":           func(a, b int) int { return a + b },
+	"visitLabel": func(value string) string {
+		return labels(map[string]string{
+			"unvisited": "Belum dikunjungi", "planned": "Masuk rute", "visited": "Sudah dikunjungi", "revisit_required": "Perlu revisit", "excluded": "Excluded",
+		}, value, value)
+	},
+	"add": func(a, b int) int { return a + b },
 	"shortArea": func(area string) string {
 		parts := strings.Split(area, ",")
 		if len(parts) > 2 {
@@ -71,6 +84,8 @@ var jakartaLocation = func() *time.Location {
 func registerContactRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("GET /contact", a.handleContactSession)
 	mux.HandleFunc("POST /contact/{id}/result", a.handleContactResult)
+	mux.HandleFunc("GET /contact/{id}/visit/{visitID}/edit", a.handleContactVisitCorrectionForm)
+	mux.HandleFunc("POST /contact/{id}/visit/{visitID}/edit", a.handleContactVisitCorrection)
 	registerMerchantRoutes(mux, a)
 }
 
@@ -146,6 +161,22 @@ func nextPlannedProspect(plan prospectstore.VisitPlan, currentProspectID int64) 
 	return 0
 }
 
+func (a *app) loadContactVisitContext(ctx context.Context, prospectID int64) (contactVisitContext, error) {
+	state, err := a.store.GetVisitState(ctx, prospectID)
+	if err != nil {
+		return contactVisitContext{}, err
+	}
+	visits, err := a.store.VisitHistory(ctx, prospectID, 20)
+	if err != nil {
+		return contactVisitContext{}, err
+	}
+	out := contactVisitContext{State: state, Visits: visits}
+	if len(visits) > 0 {
+		out.LatestVisitID = visits[0].ID
+	}
+	return out, nil
+}
+
 func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 	if err := a.store.SyncContactProfileStatus(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -218,7 +249,12 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		renderPhase2(w, contactTmpl, contactPageData{Lead: lead, Stats: stats, Pipeline: pipeline, Summary: summary, Route: route, Mode: mode})
+		visit, err := a.loadContactVisitContext(r.Context(), prospectID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		renderPhase2(w, contactTmpl, contactPageData{Lead: lead, Stats: stats, Pipeline: pipeline, Summary: summary, Route: route, Visit: visit, Mode: mode})
 		return
 	}
 
@@ -244,7 +280,12 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	renderPhase2(w, contactTmpl, contactPageData{Lead: lead, Stats: stats, Pipeline: pipeline, Summary: summary, Nav: nav, Mode: mode})
+	visit, err := a.loadContactVisitContext(r.Context(), lead.Record.Prospect.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	renderPhase2(w, contactTmpl, contactPageData{Lead: lead, Stats: stats, Pipeline: pipeline, Summary: summary, Nav: nav, Visit: visit, Mode: mode})
 }
 
 func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
