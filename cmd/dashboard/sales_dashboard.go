@@ -79,11 +79,10 @@ func (a *app) handleSalesDashboard(w http.ResponseWriter, r *http.Request) {
 	data.KPIs = []dashboardStat{
 		{"Visit Hari Ini", "kunjungan tercatat hari ini", "calendar", "blue", "#activity", summary.VisitedToday},
 		{"Revisit Due", "perlu ditindaklanjuti", "clock", "amber", "/contact?mode=follow_up", summary.RevisitDue},
-		{"Interested", "merchant tertarik", "users", "green", "/merchants?status=interested", summary.RevisitDue},
+		{"Interested", "merchant tertarik", "users", "green", "/merchants?status=interested", pipeline.Interested},
 		{"Follow Up", "dalam proses", "clipboard", "purple", "/merchants?status=follow_up", pipeline.FollowUp},
 		{"Active", "merchant aktif", "store", "rose", "/merchants?status=active", pipeline.Active},
 	}
-	data.KPIs[2].Count = pipeline.Interested
 	// Coverage (unvisited/planned/visited/revisit) is shown separately in Area
 	// Planner and Merchant. The dashboard sales pipeline starts at presentation.
 	data.Stages = []dashboardStat{
