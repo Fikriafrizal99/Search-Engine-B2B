@@ -151,7 +151,8 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	mode := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("mode")))
+	rawMode := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("mode")))
+	mode := rawMode
 	if mode == "" {
 		mode = "all"
 	}
@@ -185,6 +186,11 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "invalid prospect id", http.StatusBadRequest)
 		return
+	}
+	// A plain /contact request means "start my field work". Prefer today's
+	// saved route when one exists; explicit mode/id/plan_id always wins.
+	if planID == 0 && prospectID == 0 && rawMode == "" && summary.TodayRoute.ID > 0 {
+		planID = summary.TodayRoute.ID
 	}
 
 	var lead prospectstore.ContactLead
