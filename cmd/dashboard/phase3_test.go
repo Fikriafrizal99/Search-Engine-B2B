@@ -108,7 +108,7 @@ func TestPhase3OperationalPagesRender(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, fmt.Sprintf("/visit-plan/%d", plan.ID), nil))
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Route Execution") || !strings.Contains(w.Body.String(), "OSRM road routing") {
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Urutan Rute") || !strings.Contains(w.Body.String(), "OSRM road routing") || !strings.Contains(w.Body.String(), fmt.Sprintf("/contact?plan_id=%d", plan.ID)) {
 		t.Fatalf("route page: %d %s", w.Code, w.Body.String())
 	}
 }
