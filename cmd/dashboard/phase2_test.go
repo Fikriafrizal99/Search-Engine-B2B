@@ -38,7 +38,7 @@ func TestPhase2PagesAndActions(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, httptest.NewRequest("GET", "/areas", nil))
-	for _, want := range []string{"Mode Pencarian", "value=\"auto\"", "value=\"manual\"", "manual-include-defaults", "scrape-query-mode"} {
+	for _, want := range []string{"Mode Pencarian", "value=\"auto\"", "value=\"manual\"", "manual-include-defaults", "scrape-query-mode", "scrape-runtime"} {
 		if !strings.Contains(w.Body.String(), want) {
 			t.Fatalf("Area Planner missing scrape mode control %q", want)
 		}
@@ -107,8 +107,8 @@ func TestAreaScrapeStartsCollector(t *testing.T) {
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
 	a.handleBukupayCollect(w, request)
-	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/database?collect=started" {
-		t.Fatalf("scrape redirect: %d %s", w.Code, w.Header().Get("Location"))
+	if w.Code != http.StatusOK || w.Header().Get("Location") != "" || !strings.Contains(w.Body.String(), `"started":true`) {
+		t.Fatalf("scrape should start in-place: %d location=%q body=%s", w.Code, w.Header().Get("Location"), w.Body.String())
 	}
 	deadline := time.Now().Add(5 * time.Second)
 	for a.collectStatus().Running && time.Now().Before(deadline) {
