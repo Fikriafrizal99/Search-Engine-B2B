@@ -8,6 +8,7 @@ import (
 
 type DailyVisitBackupItem struct {
 	PlanID        int64
+	PlanItemID    int64
 	Sequence      int
 	RouteStatus   string
 	ProspectID    int64
@@ -57,7 +58,7 @@ func (s *Store) DailyVisitBackup(ctx context.Context, day time.Time, loc *time.L
 		LocationScope: scope,
 	}
 
-	query := `SELECT vp.id,vpi.sequence,vpi.status,
+	query := `SELECT vp.id,vpi.id,vpi.sequence,vpi.status,
 		p.id,p.title,p.category,p.address,p.phone,p.maps_url,p.location_scope,
 		COALESCE(h.visit_result,''),COALESCE(h.pic_name,''),COALESCE(h.note,''),
 		COALESCE(h.next_action,''),COALESCE(h.next_action_at,''),COALESCE(h.visited_at,'')
@@ -85,7 +86,7 @@ func (s *Store) DailyVisitBackup(ctx context.Context, day time.Time, loc *time.L
 	for rows.Next() {
 		var item DailyVisitBackupItem
 		if err := rows.Scan(
-			&item.PlanID, &item.Sequence, &item.RouteStatus,
+			&item.PlanID, &item.PlanItemID, &item.Sequence, &item.RouteStatus,
 			&item.ProspectID, &item.Title, &item.Category, &item.Address, &item.Phone,
 			&item.MapsURL, &item.LocationScope, &item.VisitResult, &item.PICName,
 			&item.Note, &item.NextAction, &item.NextActionAt, &item.VisitedAt,
