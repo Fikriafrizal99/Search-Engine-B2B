@@ -23,7 +23,7 @@
   <div class="sales-overview">
     {{range .Routes}}
     <section class="ui-card sales-route {{.Tone}}">
-      <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="sales-route-icon">{{template "ui-icon" .Icon}}</span><div><h2>{{.Title}}</h2><p class="ui-muted">{{.Subtitle}}</p></div></div>{{if .ID}}<a class="ui-textlink" href="{{.URL}}">Lihat Detail {{template "ui-icon" "arrow"}}</a>{{end}}</div>
+      <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="sales-route-icon">{{template "ui-icon" .Icon}}</span><div><h2>{{.Title}}</h2><p class="ui-muted">{{.Subtitle}}</p></div></div>{{if .ID}}<a class="ui-textlink" href="{{.DetailURL}}">Lihat Detail {{template "ui-icon" "arrow"}}</a>{{end}}</div>
       <div class="sales-route-banner"><span class="ui-iconbox ui-round {{.Tone}}">{{template "ui-icon" "pin"}}</span><div><strong>{{.Count}} merchant</strong><p class="ui-muted">{{if .ID}}{{if gt .SavedPlans 1}}Rute terbaru · {{.SavedPlans}} rute tersimpan{{else}}Rute tersimpan{{end}}{{else}}Belum ada rute tersimpan{{end}}</p></div></div>
       <div class="sales-route-metrics">
         <div>{{template "ui-icon" "route"}}<div><strong>{{if .ID}}{{printf "%.1f" .DistanceKM}} km{{else}}—{{end}}</strong><span class="ui-muted">{{if eq .RoutingSource "osrm"}}jarak jalan{{else if .ID}}jarak garis lurus{{else}}jarak belum tersedia{{end}}</span></div></div>
@@ -47,7 +47,7 @@
   </div>
 
   <section class="ui-card sales-pipeline" id="pipeline">
-    <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="blue">{{template "ui-icon" "chart"}}</span><div><h2>Sales Pipeline Bukupay</h2><p class="ui-muted">Tahap lengkap dari merchant baru hingga aktif.</p></div></div>
+    <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="blue">{{template "ui-icon" "chart"}}</span><div><h2>Sales Pipeline Bukupay</h2><p class="ui-muted">Tahap penjualan setelah merchant mulai dipresentasikan hingga aktif. Coverage kunjungan dikelola terpisah.</p></div></div>
       <div class="sales-pipeline-controls"><form action="/sales#pipeline" method="get"><label class="sr-only" for="pipeline-area">Filter area pipeline</label><select id="pipeline-area" name="location"><option value="">Semua Area</option>{{range .Summary.Areas}}<option value="{{.}}" {{if eq . $.Location}}selected{{end}}>{{.}}</option>{{end}}</select><button class="ui-button ui-compact" type="submit">Terapkan</button></form><span class="ui-muted sales-snapshot">Status saat ini</span><a class="ui-textlink" href="/merchants?location={{.Location}}">Lihat Semua {{template "ui-icon" "arrow"}}</a></div>
     </div>
     <div class="sales-pipeline-grid">{{range .Stages}}<a class="sales-stage {{.Tone}}" href="{{.URL}}"><h3>{{.Label}}</h3><strong>{{.Count}}</strong><span>{{template "ui-icon" .Icon}}{{.Hint}}</span></a>{{end}}</div>
@@ -55,7 +55,7 @@
 
   <div class="sales-bottom">
     <section class="ui-card sales-priority" id="priorities">
-      <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="rose">{{template "ui-icon" "target"}}</span><div><h2>Prioritas Hari Ini</h2><p class="ui-muted">Merchant berikutnya yang perlu dikunjungi.</p></div></div><a class="ui-textlink" href="/contact?mode=follow_up">Follow Up {{template "ui-icon" "arrow"}}</a></div>
+      <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="rose">{{template "ui-icon" "target"}}</span><div><h2>Prioritas Hari Ini</h2><p class="ui-muted">Merchant berikutnya yang perlu ditindaklanjuti.</p></div></div><a class="ui-textlink" href="/contact?mode=follow_up">Follow Up {{template "ui-icon" "arrow"}}</a></div>
       {{if .Summary.Priorities}}
         {{template "sales-priority-card" (index .Summary.Priorities 0)}}
         {{if gt (len .Summary.Priorities) 1}}<details class="sales-more"><summary>Lihat daftar prioritas · {{len .Summary.Priorities}} merchant</summary><div class="sales-more-list">{{range $i,$p := .Summary.Priorities}}{{if $i}}{{template "sales-priority-card" $p}}{{end}}{{end}}</div></details>{{end}}
@@ -70,7 +70,7 @@
         <ul class="sales-activity-list">{{range $i,$a := .Summary.Activities}}{{if lt $i 4}}{{template "sales-activity-row" $a}}{{end}}{{end}}</ul>
         {{if gt (len .Summary.Activities) 4}}<details class="sales-more"><summary>Lihat {{len .Summary.Activities}} aktivitas terbaru</summary><ul class="sales-activity-list">{{range $i,$a := .Summary.Activities}}{{if ge $i 4}}{{template "sales-activity-row" $a}}{{end}}{{end}}</ul></details>{{end}}
       {{else}}
-        <div class="ui-empty"><span class="ui-iconbox blue ui-round">{{template "ui-icon" "clock"}}</span><strong>Belum ada aktivitas tercatat</strong><p>Hasil kunjungan dan perubahan pipeline akan muncul di sini.</p><a class="ui-textlink" href="/contact?mode=all">Mulai Visit Session {{template "ui-icon" "arrow"}}</a></div>
+        <div class="ui-empty"><span class="ui-iconbox blue ui-round">{{template "ui-icon" "clock"}}</span><strong>Belum ada aktivitas tercatat</strong><p>Hasil kunjungan dan perubahan pipeline akan muncul di sini.</p><a class="ui-textlink" href="/contact">Mulai Visit Session {{template "ui-icon" "arrow"}}</a></div>
       {{end}}
     </section>
 
@@ -79,7 +79,7 @@
       <div class="sales-quick-grid">
         <a href="/areas"><span class="ui-iconbox blue ui-round">{{template "ui-icon" "map"}}</span><div><h3>Area Planner</h3><p class="ui-muted">Pilih area, scrape, dan buat rute.</p></div></a>
         <a href="/merchants"><span class="ui-iconbox blue ui-round">{{template "ui-icon" "users"}}</span><div><h3>Semua Merchant</h3><p class="ui-muted">Lihat dan kelola data merchant.</p></div></a>
-        <a href="/contact?mode=all"><span class="ui-iconbox blue ui-round">{{template "ui-icon" "calendar"}}</span><div><h3>Visit Session</h3><p class="ui-muted">Mulai sesi kunjungan dan catat hasil.</p></div></a>
+        <a href="/contact"><span class="ui-iconbox blue ui-round">{{template "ui-icon" "calendar"}}</span><div><h3>Visit Session</h3><p class="ui-muted">Lanjutkan rute aktif atau buka action queue.</p></div></a>
         <a href="/database"><span class="ui-iconbox blue ui-round">{{template "ui-icon" "database"}}</span><div><h3>Database &amp; Scraper</h3><p class="ui-muted">Kelola data master merchant.</p></div></a>
       </div>
     </section>
