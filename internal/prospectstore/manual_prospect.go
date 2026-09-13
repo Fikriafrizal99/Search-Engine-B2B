@@ -59,8 +59,8 @@ func (s *Store) ProspectSource(ctx context.Context, prospectID int64) (string, e
 }
 
 // CreateManualProspect adds a merchant discovered outside the scraper. When an
-// exact dedup key already exists, the existing prospect is reused and its
-// original source is preserved.
+// existing merchant matches by phone or by name+address, that prospect is
+// reused and its original source is preserved.
 func (s *Store) CreateManualProspect(ctx context.Context, in ManualProspectInput) (int64, bool, error) {
 	title := cleanText(in.Title, 300)
 	category := cleanText(in.Category, 300)
@@ -77,6 +77,12 @@ func (s *Store) CreateManualProspect(ctx context.Context, in ManualProspectInput
 	if locationScope == "" {
 		locationScope = address
 	}
+	if existingID, err := s.findManualProspectDuplicate(ctx, title, address, phone); err != nil {
+		return 0, false, err
+	} else if existingID > 0 {
+		return existingID, false, nil
+	}
+
 	key := makeDedupKey("", "", phone, title, 0, 0, address)
 	if strings.TrimSpace(key) == "" {
 		return 0, false, fmt.Errorf("data merchant belum cukup untuk disimpan")
@@ -123,4 +129,30 @@ func (s *Store) CreateManualProspect(ctx context.Context, in ManualProspectInput
 		return 0, false, err
 	}
 	return id, true, nil
+}
+
+func (s *Store) findManualProspectDuplicate(ctx context.Context, title, address, phone string) (int64, error) {
+	phoneA, phoneB := phoneVariants(phone)
+	const normalizedPhone = `REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone,' ',''),'-',''),'(',''),')',''),'+',''),'.','')`
+	var id int64
+	err := s.db.QueryRowContext(ctx, `SELECT id FROM prospects WHERE
+		(?<>'' AND (`+normalizedPhone+`=? OR `+normalizedPhone+`=?)) OR
+		(LOWER(TRIM(title))=? AND LOWER(TRIM(address))=?)
+		ORDER BY id LIMIT 1`,
+		phoneA, phoneA, phoneB, strings.ToLower(strings.TrimSpace(title)), strings.ToLower(strings.TrimSpace(address))).Scan(&id)
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	return id, err
+}
+
+func phoneVariants(value string) (string, string) {
+	value = digits(value)
+	if strings.HasPrefix(value, "62") {
+		return value, "0" + strings.TrimPrefix(value, "62")
+	}
+	if strings.HasPrefix(value, "0") {
+		return value, "62" + strings.TrimPrefix(value, "0")
+	}
+	return value, value
 }
