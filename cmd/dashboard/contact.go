@@ -42,6 +42,7 @@ type contactPageData struct {
 	Nav      prospectstore.ContactNavigation
 	Route    contactRouteContext
 	Visit    contactVisitContext
+	Source   string
 	Mode     string
 	Empty    bool
 }
@@ -86,6 +87,7 @@ func registerContactRoutes(mux *http.ServeMux, a *app) {
 	mux.HandleFunc("POST /contact/{id}/result", a.handleContactResult)
 	mux.HandleFunc("GET /contact/{id}/visit/{visitID}/edit", a.handleContactVisitCorrectionForm)
 	mux.HandleFunc("POST /contact/{id}/visit/{visitID}/edit", a.handleContactVisitCorrection)
+	registerManualVisitRoutes(mux, a)
 	registerMerchantRoutes(mux, a)
 }
 
@@ -177,6 +179,18 @@ func (a *app) loadContactVisitContext(ctx context.Context, prospectID int64) (co
 	return out, nil
 }
 
+func (a *app) renderContactPage(w http.ResponseWriter, r *http.Request, data contactPageData) {
+	if data.Lead.Record.Prospect.ID > 0 {
+		source, err := a.store.ProspectSource(r.Context(), data.Lead.Record.Prospect.ID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		data.Source = source
+	}
+	renderPhase2(w, contactTmpl, data)
+}
+
 func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 	if err := a.store.SyncContactProfileStatus(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -254,7 +268,7 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		renderPhase2(w, contactTmpl, contactPageData{Lead: lead, Stats: stats, Pipeline: pipeline, Summary: summary, Route: route, Visit: visit, Mode: mode})
+		a.renderContactPage(w, r, contactPageData{Lead: lead, Stats: stats, Pipeline: pipeline, Summary: summary, Route: route, Visit: visit, Mode: mode})
 		return
 	}
 
@@ -285,7 +299,7 @@ func (a *app) handleContactSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	renderPhase2(w, contactTmpl, contactPageData{Lead: lead, Stats: stats, Pipeline: pipeline, Summary: summary, Nav: nav, Visit: visit, Mode: mode})
+	a.renderContactPage(w, r, contactPageData{Lead: lead, Stats: stats, Pipeline: pipeline, Summary: summary, Nav: nav, Visit: visit, Mode: mode})
 }
 
 func (a *app) handleContactResult(w http.ResponseWriter, r *http.Request) {
