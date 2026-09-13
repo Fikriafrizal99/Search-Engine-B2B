@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tambah Visit Manual · Bukupay</title><link rel="stylesheet" href="/assets/bukupay-ui-v2.css"><link rel="stylesheet" href="/assets/phase3.css"></head>
+<body class="ui-body">{{template "ui-symbols"}}{{template "ui-nav" "contact"}}
+<main class="ui-container phase3" id="main">
+ <div class="p3-heading"><div><a class="ui-textlink" href="/contact">← Kembali ke Visit Session</a><h1 style="margin-top:10px">Tambah Visit Manual</h1><p class="ui-subtitle">Tambahkan merchant yang ditemukan langsung di lapangan atau di luar data scraper.</p></div></div>
+
+ <section class="ui-card p3-panel" style="max-width:820px">
+  <div class="ui-sectionhead"><div class="ui-sectiontitle"><span class="blue">{{template "ui-icon" "store"}}</span><div><h2>Data Merchant</h2><p class="ui-muted">Isi data utama agar merchant langsung dapat diproses di Visit Session.</p></div></div></div>
+  {{if .Error}}<div class="p3-note p3-warn" role="alert" style="margin-bottom:14px"><strong>Data belum dapat disimpan</strong><div style="margin-top:4px">{{.Error}}</div></div>{{end}}
+  <form method="post" action="/contact/manual">
+   <div class="p3-form-grid">
+    <label class="p3-field">Nama Merchant *<input name="title" value="{{.Form.Title}}" placeholder="Contoh: Toko Berkah Motor" required maxlength="300"></label>
+    <label class="p3-field">Kategori Usaha<input name="category" value="{{.Form.Category}}" placeholder="Contoh: Bengkel Motor" maxlength="300"></label>
+    <label class="p3-field">Nomor HP / WhatsApp<input name="phone" value="{{.Form.Phone}}" placeholder="08xxxxxxxxxx" maxlength="100" inputmode="tel"></label>
+    <label class="p3-field">Area / Kecamatan<input name="location_scope" value="{{.Form.LocationScope}}" placeholder="Contoh: Karangtengah, Cianjur" maxlength="500"></label>
+    <label class="p3-field p3-full">Alamat / Lokasi *<textarea name="address" placeholder="Alamat merchant atau patokan lokasi." required maxlength="1000">{{.Form.Address}}</textarea></label>
+    <label class="p3-field p3-full">Link Google Maps <span class="ui-muted">(opsional)</span><input name="maps_url" value="{{.Form.MapsURL}}" placeholder="https://maps.app.goo.gl/..." maxlength="2000" inputmode="url"></label>
+   </div>
+   <div class="p3-note" style="margin-top:14px"><strong>Source: Manual</strong><div style="margin-top:4px">Merchant baru dari form ini disimpan sebagai source <code>manual</code>. Data hasil collector tetap source <code>scraper</code>.</div></div>
+   <div class="p3-actions" style="justify-content:flex-end;margin-top:16px"><button class="ui-button ui-outline" type="submit" name="action" value="list">Simpan ke Daftar</button><button class="ui-button ui-primary" type="submit" name="action" value="start">Simpan &amp; Mulai Visit →</button></div>
+  </form>
+ </section>
+</main></body></html>
